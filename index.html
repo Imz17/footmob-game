@@ -1276,18 +1276,32 @@
                     if (currentScreen === 'game-room-screen') {
                         updateGameRoomUI(roomData);
                         
-                        // Check if both players are ready for game start
+                        // Check if both players are ready and update start button accordingly
                         const hostReady = roomData.players?.host?.playerReady || false;
                         const guestReady = roomData.players?.guest?.playerReady || false;
+                        const isHost = roomData.players.host.uid === currentUser.uid;
+                        const playerCount = Object.keys(roomData.players).length;
                         
-                        if (hostReady && guestReady) {
-                            // Show start button for host only
-                            const isHost = roomData.players.host.uid === currentUser.uid;
+                        if (playerCount === 2 && hostReady && guestReady && isHost) {
+                            // Both players ready - show start game button
                             const startBtn = document.getElementById('start-game-btn');
-                            if (isHost) {
-                                startBtn.style.display = 'block';
-                                startBtn.textContent = '🚀 Both Ready - Start Game!';
-                            }
+                            startBtn.textContent = '🚀 Both Ready - Start Game!';
+                            startBtn.disabled = false;
+                            startBtn.onclick = async () => {
+                                try {
+                                    await updateDoc(doc(db, 'rooms', currentRoom.id), {
+                                        'gameState.inProgress': true,
+                                        'gameState.phase': 'gameplay',
+                                        'gameState.currentTurn': 'host',
+                                        'gameState.questions': [],
+                                        'gameState.gameLog': [],
+                                        'gameState.winner': null
+                                    });
+                                } catch (error) {
+                                    console.error('Error starting game:', error);
+                                    showError('Failed to start game');
+                                }
+                            };
                         }
                         
                         // Check if game has started
@@ -1295,6 +1309,13 @@
                             console.log('Game is in progress, transitioning to gameplay');
                             gameState = roomData.gameState;
                             startGameplay();
+                            return;
+                        }
+                        
+                        // Check if player selection phase started
+                        if (roomData.gameState?.phase === 'player_selection' && !roomData.gameState.inProgress) {
+                            console.log('Player selection phase started');
+                            startPlayerSelection();
                             return;
                         }
                     }
@@ -1358,27 +1379,9 @@
             document.getElementById('room-code-text').textContent = currentRoom.roomCode;
             document.getElementById('host-name').textContent = currentRoom.players.host.username;
             
-            // Show "Select Players" button immediately for demonstration
+            // Don't show any buttons initially - let the listener handle it
             const startGameBtn = document.getElementById('start-game-btn');
-            if (isHost) {
-                startGameBtn.style.display = 'block';
-                startGameBtn.textContent = '🎮 Select Players First';
-                startGameBtn.onclick = () => {
-                    // Initialize game state for player selection
-                    updateDoc(doc(db, 'rooms', currentRoom.id), {
-                        gameState: {
-                            inProgress: false,
-                            phase: 'player_selection',
-                            currentTurn: 'host'
-                        }
-                    }).then(() => {
-                        startPlayerSelection();
-                    }).catch(error => {
-                        console.error('Error initializing game state:', error);
-                        startPlayerSelection(); // Fallback
-                    });
-                };
-            }
+            startGameBtn.style.display = 'none';
         }
 
         function updateGameRoomUI(roomData) {
@@ -1399,18 +1402,30 @@
                     <div class="player-role">🎮 Player</div>
                 `;
                 
-                // Check if both players are ready
-                const hostReady = roomData.players?.host?.playerReady || false;
-                const guestReady = roomData.players?.guest?.playerReady || false;
                 const isHost = roomData.players.host.uid === currentUser.uid;
                 
-                if (hostReady && guestReady && isHost) {
+                if (isHost) {
+                    // Show "Select Players" button when room is full
                     startGameBtn.style.display = 'block';
-                    startGameBtn.textContent = '🚀 Both Ready - Start Game!';
-                } else if (isHost) {
-                    startGameBtn.style.display = 'block';
-                    startGameBtn.textContent = '⏳ Select Players First';
-                    startGameBtn.disabled = true;
+                    startGameBtn.textContent = '🎮 Select Players';
+                    startGameBtn.disabled = false;
+                    
+                    // Set up the click handler for starting player selection
+                    startGameBtn.onclick = async () => {
+                        try {
+                            await updateDoc(doc(db, 'rooms', currentRoom.id), {
+                                gameState: {
+                                    inProgress: false,
+                                    phase: 'player_selection',
+                                    currentTurn: 'host'
+                                }
+                            });
+                            startPlayerSelection();
+                        } catch (error) {
+                            console.error('Error initializing game state:', error);
+                            startPlayerSelection(); // Fallback
+                        }
+                    };
                 } else {
                     startGameBtn.style.display = 'none';
                 }
@@ -1418,7 +1433,15 @@
                 playerCountElement.classList.remove('full');
                 guestSlot.classList.remove('filled');
                 guestContent.innerHTML = '<div class="empty-slot">Waiting for player...</div>';
-                startGameBtn.style.display = 'none';
+                
+                const isHost = roomData.players.host.uid === currentUser.uid;
+                if (isHost) {
+                    startGameBtn.style.display = 'block';
+                    startGameBtn.textContent = '⏳ Waiting for Player 2';
+                    startGameBtn.disabled = true;
+                } else {
+                    startGameBtn.style.display = 'none';
+                }
             }
         }
 
