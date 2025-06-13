@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOOTMOB - Football Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial Black', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 900;
+            color: #FFD700;
+            text-shadow: 3px 3px 0px #FF6B6B;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #E0E0E0;
+            font-weight: bold;
+        }
+
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 18px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            margin: 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .button:hover, .button:active {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.4);
+        }
+
+        .button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #FFD700;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            text-align: center;
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+
+        .room-code-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            z-index: 100;
+        }
+
+        .player-count {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,107,107,0.9);
+            padding: 12px 25px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .player-count.full {
+            background: rgba(86,171,47,0.9);
+        }
+
+        .room-list {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 200px;
+        }
+
+        .room-item {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .room-info {
+            flex: 1;
+        }
+
+        .room-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 3px;
+        }
+
+        .room-creator {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .join-button {
+            background: #4ECDC4;
+            border: none;
+            border-radius: 15px;
+            padding: 8px 15px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .player-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .player-slot {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .player-slot.filled {
+            background: rgba(86,171,47,0.3);
+            border: 2px solid #56ab2f;
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-role {
+            font-size: 12px;
+            color: #FFD700;
+            text-transform: uppercase;
+        }
+
+        .empty-slot {
+            color: rgba(255,255,255,0.5);
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 16px;
+            color: #FFD700;
+        }
+
+        .error {
+            background: rgba(255,107,107,0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .logo {
+                font-size: 28px;
+            }
+            
+            .button {
+                font-size: 16px;
+                padding: 15px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚽ FOOTMOB</div>
+            <div class="subtitle">Football Quiz Challenge</div>
+        </div>
+
+        <!-- Username Setup Screen -->
+        <div id="username-screen" class="screen active">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h2 style="font-size: 24px; margin-bottom: 15px;">Welcome to FOOTMOB!</h2>
+                    <p style="color: #E0E0E0;">Choose your username to get started</p>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" for="username-input">Enter Username</label>
+                    <input type="text" id="username-input" class="input-field" placeholder="Your awesome username" maxlength="15">
+                </div>
+                
+                <button id="save-username-btn" class="button">Start Playing!</button>
+            </div>
+        </div>
+
+        <!-- Home Screen -->
+        <div id="home-screen" class="screen">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 15px;">
+                <button id="play-friends-btn" class="button">👥 Play with Friends</button>
+                <button class="button" disabled>🏆 Ranked</button>
+                <button class="button" disabled>⚽ Casual</button>
+                <button class="button" disabled>🛒 Store</button>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #FFD700; font-weight: bold;">Welcome back, <span id="current-username"></span>!</p>
+                <button onclick="changeUsername()" style="background: none; border: none; color: #E0E0E0; text-decoration: underline; cursor: pointer; margin-top: 10px;">Change Username</button>
+            </div>
+        </div>
+
+        <!-- Private Room Lobby -->
+        <div id="room-lobby-screen" class="screen">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #FFD700;">Private Rooms</h2>
+            
+            <div id="rooms-loading" class="loading">Loading rooms...</div>
+            
+            <div id="room-list" class="room-list" style="display: none;">
+                <!-- Rooms will be populated here -->
+            </div>
+            
+            <button id="create-room-btn" class="button secondary">➕ Create Private Room</button>
+            <button id="back-to-home-btn" class="button" style="background: #666;">← Back to Home</button>
+        </div>
+
+        <!-- Game Room Screen -->
+        <div id="game-room-screen" class="screen">
+            <div class="room-code-display" id="room-code-display">
+                Room Code: <span id="room-code-text">------</span>
+            </div>
+
+            <h2 style="text-align: center; margin-bottom: 30px; color: #FFD700;">Game Lobby</h2>
+            
+            <div class="player-slots">
+                <div class="player-slot filled" id="host-slot">
+                    <div class="player-name" id="host-name">Host</div>
+                    <div class="player-role">👑 Host</div>
+                </div>
+                
+                <div class="player-slot" id="guest-slot">
+                    <div id="guest-content" class="empty-slot">Waiting for player...</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="start-game-btn" class="button success" style="display: none;">🚀 Start Game</button>
+                <button id="leave-room-btn" class="button" style="background: #666; margin-top: 10px;">← Leave Room</button>
+            </div>
+
+            <div class="player-count" id="player-count">👤 Players: 1 / 2</div>
+        </div>
+
+        <!-- Create Room Modal -->
+        <div id="create-room-modal" class="modal">
+            <div class="modal-content">
+                <button class="close-modal" onclick="closeCreateRoomModal()">×</button>
+                <h3 style="margin-bottom: 20px; color: #FFD700;">Create Private Room</h3>
+                
+                <div class="input-group">
+                    <label class="input-label" for="room-name-input">Room Name</label>
+                    <input type="text" id="room-name-input" class="input-field" placeholder="Epic Football Quiz" maxlength="20">
+                </div>
+                
+                <button id="confirm-create-room-btn" class="button">Create Room</button>
+            </div>
+        </div>
+
+        <!-- Join Room Modal -->
+        <div id="join-room-modal" class="modal">
+            <div class="modal-content">
+                <button class="close-modal" onclick="closeJoinRoomModal()">×</button>
+                <h3 style="margin-bottom: 20px; color: #FFD700;">Join Room</h3>
+                
+                <div class="input-group">
+                    <label class="input-label" for="room-code-input">Enter Room Code</label>
+                    <input type="text" id="room-code-input" class="input-field" placeholder="3FH9KD" maxlength="6" style="text-transform: uppercase;">
+                </div>
+                
+                <button id="confirm-join-room-btn" class="button">Join Room</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        // Firebase configuration - Replace with your actual Firebase config
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Your actual Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFJvXq_bQwiFPg2cAeWpT1p1WKobjUfS8",
+            authDomain: "footmob-a9aa8.firebaseapp.com",
+            projectId: "footmob-a9aa8",
+            storageBucket: "footmob-a9aa8.firebasestorage.app",
+            messagingSenderId: "731629223578",
+            appId: "1:731629223578:web:20f36c0b048217c091a923"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Global variables
+        let currentUser = null;
+        let currentUsername = localStorage.getItem('footmob-username') || '';
+        let currentRoom = null;
+        let roomListener = null;
+
+        // Utility functions
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').appendChild(errorDiv);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 3000);
+        }
+
+        // Authentication
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                console.log('User authenticated:', user.uid);
+                
+                if (currentUsername) {
+                    document.getElementById('current-username').textContent = currentUsername;
+                    showScreen('home-screen');
+                } else {
+                    showScreen('username-screen');
+                }
+            } else {
+                signInAnonymously(auth).catch((error) => {
+                    console.error('Authentication failed:', error);
+                    showError('Failed to connect. Please refresh the page.');
+                });
+            }
+        });
+
+        // Username setup
+        document.getElementById('save-username-btn').addEventListener('click', () => {
+            const usernameInput = document.getElementById('username-input');
+            const username = usernameInput.value.trim();
+            
+            if (username.length < 3) {
+                showError('Username must be at least 3 characters long');
+                return;
+            }
+            
+            currentUsername = username;
+            localStorage.setItem('footmob-username', username);
+            document.getElementById('current-username').textContent = username;
+            showScreen('home-screen');
+        });
+
+        // Home screen navigation
+        document.getElementById('play-friends-btn').addEventListener('click', () => {
+            showScreen('room-lobby-screen');
+            loadRooms();
+        });
+
+        document.getElementById('back-to-home-btn').addEventListener('click', () => {
+            showScreen('home-screen');
+        });
+
+        // Room lobby functionality
+        async function loadRooms() {
+            document.getElementById('rooms-loading').style.display = 'block';
+            document.getElementById('room-list').style.display = 'none';
+            
+            try {
+                // Simplified query while index builds
+                const roomsQuery = query(
+                    collection(db, 'rooms'),
+                    where('type', '==', 'private'),
+                    where('status', '==', 'waiting')
+                );
+                
+                const snapshot = await getDocs(roomsQuery);
+                const roomListElement = document.getElementById('room-list');
+                roomListElement.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    roomListElement.innerHTML = '<div style="text-align: center; color: #E0E0E0; padding: 40px;">No rooms available. Create one!</div>';
+                } else {
+                    snapshot.forEach((doc) => {
+                        const room = doc.data();
+                        const roomElement = createRoomElement(room, doc.id);
+                        roomListElement.appendChild(roomElement);
+                    });
+                }
+                
+                document.getElementById('rooms-loading').style.display = 'none';
+                document.getElementById('room-list').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading rooms:', error);
+                showError('Failed to load rooms');
+                document.getElementById('rooms-loading').style.display = 'none';
+            }
+        }
+
+        function createRoomElement(room, roomId) {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'room-item';
+            
+            const playerCount = Object.keys(room.players || {}).length;
+            
+            roomDiv.innerHTML = `
+                <div class="room-info">
+                    <div class="room-name">${room.roomName}</div>
+                    <div class="room-creator">By ${room.createdBy} • ${playerCount}/2 players</div>
+                </div>
+                <button class="join-button" onclick="joinRoom('${roomId}', '${room.roomCode}')">Join</button>
+            `;
+            
+            return roomDiv;
+        }
+
+        // Create room functionality
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+            document.getElementById('create-room-modal').classList.add('active');
+        });
+
+        document.getElementById('confirm-create-room-btn').addEventListener('click', async () => {
+            const roomNameInput = document.getElementById('room-name-input');
+            const roomName = roomNameInput.value.trim();
+            
+            if (!roomName) {
+                showError('Please enter a room name');
+                return;
+            }
+            
+            try {
+                const roomCode = generateRoomCode();
+                const roomData = {
+                    type: 'private',
+                    roomName: roomName,
+                    roomCode: roomCode,
+                    createdBy: currentUsername,
+                    status: 'waiting',
+                    createdAt: serverTimestamp(),
+                    players: {
+                        host: {
+                            uid: currentUser.uid,
+                            username: currentUsername
+                        }
+                    }
+                };
+                
+                const docRef = await addDoc(collection(db, 'rooms'), roomData);
+                currentRoom = { id: docRef.id, ...roomData };
+                
+                closeCreateRoomModal();
+                enterGameRoom(true);
+            } catch (error) {
+                console.error('Error creating room:', error);
+                showError('Failed to create room');
+            }
+        });
+
+        // Join room functionality
+        window.joinRoom = function(roomId, expectedCode) {
+            window.currentJoinRoomId = roomId;
+            window.expectedRoomCode = expectedCode;
+            document.getElementById('join-room-modal').classList.add('active');
+        };
+
+        document.getElementById('confirm-join-room-btn').addEventListener('click', async () => {
+            const roomCodeInput = document.getElementById('room-code-input');
+            const enteredCode = roomCodeInput.value.trim().toUpperCase();
+            
+            if (!enteredCode) {
+                showError('Please enter a room code');
+                return;
+            }
+            
+            if (enteredCode !== window.expectedRoomCode) {
+                showError('Invalid room code');
+                return;
+            }
+            
+            try {
+                const roomRef = doc(db, 'rooms', window.currentJoinRoomId);
+                const roomDoc = await getDoc(roomRef);
+                
+                if (!roomDoc.exists()) {
+                    showError('Room not found');
+                    return;
+                }
+                
+                const roomData = roomDoc.data();
+                
+                if (roomData.players.guest) {
+                    showError('Room is full');
+                    return;
+                }
+                
+                // Add player as guest
+                await updateDoc(roomRef, {
+                    [`players.guest`]: {
+                        uid: currentUser.uid,
+                        username: currentUsername
+                    }
+                });
+                
+                currentRoom = { id: window.currentJoinRoomId, ...roomData };
+                
+                closeJoinRoomModal();
+                enterGameRoom(false);
+            } catch (error) {
+                console.error('Error joining room:', error);
+                showError('Failed to join room');
+            }
+        });
+
+        // Game room functionality
+        function enterGameRoom(isHost) {
+            showScreen('game-room-screen');
+            document.getElementById('room-code-text').textContent = currentRoom.roomCode;
+            document.getElementById('host-name').textContent = currentRoom.players.host.username;
+            
+            if (isHost) {
+                document.getElementById('start-game-btn').style.display = 'none';
+            }
+            
+            // Listen for room updates
+            if (roomListener) {
+                roomListener();
+            }
+            
+            roomListener = onSnapshot(doc(db, 'rooms', currentRoom.id), (doc) => {
+                if (doc.exists()) {
+                    const roomData = doc.data();
+                    updateGameRoomUI(roomData);
+                }
+            });
+        }
+
+        function updateGameRoomUI(roomData) {
+            const playerCount = Object.keys(roomData.players).length;
+            const playerCountElement = document.getElementById('player-count');
+            const guestSlot = document.getElementById('guest-slot');
+            const guestContent = document.getElementById('guest-content');
+            const startGameBtn = document.getElementById('start-game-btn');
+            
+            // Update player count
+            playerCountElement.textContent = `👤 Players: ${playerCount} / 2`;
+            
+            if (playerCount === 2) {
+                playerCountElement.classList.add('full');
+                
+                // Update guest slot
+                guestSlot.classList.add('filled');
+                guestContent.innerHTML = `
+                    <div class="player-name">${roomData.players.guest.username}</div>
+                    <div class="player-role">🎮 Player</div>
+                `;
+                
+                // Show start button for host
+                if (roomData.players.host.uid === currentUser.uid) {
+                    startGameBtn.style.display = 'block';
+                }
+            } else {
+                playerCountElement.classList.remove('full');
+                guestSlot.classList.remove('filled');
+                guestContent.innerHTML = '<div class="empty-slot">Waiting for player...</div>';
+                startGameBtn.style.display = 'none';
+            }
+        }
+
+        // Start game
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            alert('Game started! 🎮\n\nThis is where the actual quiz game would begin.');
+        });
+
+        // Leave room
+        document.getElementById('leave-room-btn').addEventListener('click', async () => {
+            if (roomListener) {
+                roomListener();
+                roomListener = null;
+            }
+            
+            if (currentRoom) {
+                try {
+                    const roomRef = doc(db, 'rooms', currentRoom.id);
+                    const roomDoc = await getDoc(roomRef);
+                    
+                    if (roomDoc.exists()) {
+                        const roomData = roomDoc.data();
+                        
+                        if (roomData.players.host.uid === currentUser.uid) {
+                            // Host is leaving, delete the room
+                            await updateDoc(roomRef, {
+                                status: 'closed'
+                            });
+                        } else if (roomData.players.guest && roomData.players.guest.uid === currentUser.uid) {
+                            // Guest is leaving, remove from players
+                            await updateDoc(roomRef, {
+                                'players.guest': null
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error leaving room:', error);
+                }
+            }
+            
+            currentRoom = null;
+            showScreen('room-lobby-screen');
+            loadRooms();
+        });
+
+        // Modal functions
+        window.closeCreateRoomModal = function() {
+            document.getElementById('create-room-modal').classList.remove('active');
+            document.getElementById('room-name-input').value = '';
+        };
+
+        window.closeJoinRoomModal = function() {
+            document.getElementById('join-room-modal').classList.remove('active');
+            document.getElementById('room-code-input').value = '';
+        };
+
+        // Handle Enter key in inputs
+        document.getElementById('username-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('save-username-btn').click();
+            }
+        });
+
+        document.getElementById('room-name-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('confirm-create-room-btn').click();
+            }
+        });
+
+        document.getElementById('room-code-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('confirm-join-room-btn').click();
+            }
+        });
+
+        // Change username function
+        window.changeUsername = function() {
+            localStorage.removeItem('footmob-username');
+            currentUsername = '';
+            showScreen('username-screen');
+        };
+
+        // Auto-uppercase room code input
+        document.getElementById('room-code-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
