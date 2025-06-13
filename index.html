@@ -1080,11 +1080,15 @@
                     if (roomData.gameState && (currentScreen === 'player-selection-screen' || currentScreen === 'waiting-screen' || currentScreen === 'gameplay-screen')) {
                         gameState = roomData.gameState;
                         
+                        console.log('Game state update - Phase:', roomData.gameState.phase, 'Selections:', roomData.gameState.selections);
+                        
                         // Check player selection completion
                         if (roomData.gameState.phase === 'player_selection') {
                             const selections = roomData.gameState.selections || {};
+                            console.log('Checking selections - Host:', selections.host, 'Guest:', selections.guest, 'Current screen:', currentScreen);
+                            
                             if (selections.host && selections.guest && currentScreen === 'waiting-screen') {
-                                console.log('Both players selected, starting gameplay');
+                                console.log('Both players selected, starting gameplay from universal listener');
                                 startGameplay();
                             }
                         }
@@ -1204,11 +1208,36 @@
                 
                 console.log('Confirming player selection:', selectedPlayer, 'for role:', role);
                 
+                // Get current room data first
+                const roomDoc = await getDoc(roomRef);
+                const currentRoomData = roomDoc.data();
+                const currentSelections = currentRoomData.gameState?.selections || {};
+                
+                // Update with the new selection
+                const updatedSelections = {
+                    ...currentSelections,
+                    [role]: selectedPlayer
+                };
+                
+                console.log('Updating selections:', updatedSelections);
+                
                 await updateDoc(roomRef, {
-                    [`gameState.selections.${role}`]: selectedPlayer
+                    [`gameState.selections`]: updatedSelections
                 });
                 
                 showScreen('waiting-screen');
+                
+                // Check immediately if both players have now selected
+                if (updatedSelections.host && updatedSelections.guest) {
+                    console.log('Both players have selected! Starting gameplay immediately...');
+                    gameState = {
+                        ...currentRoomData.gameState,
+                        selections: updatedSelections
+                    };
+                    setTimeout(() => {
+                        startGameplay();
+                    }, 1000); // Small delay to ensure Firebase sync
+                }
                 
             } catch (error) {
                 console.error('Error confirming player selection:', error);
