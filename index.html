@@ -990,13 +990,65 @@
             }, 3000);
         }
 
+        // Add more complete player profiles for better gameplay
         function getPlayerAnswer(playerId, questionId) {
-            const profile = playerProfiles[playerId];
+            // Expanded profiles for the first few players
+            const expandedProfiles = {
+                "leroy_sane": playerProfiles["leroy_sane"],
+                "bukayo_saka": playerProfiles["bukayo_saka"],
+                "pedri": playerProfiles["pedri"],
+                "frenkie_de_jong": {
+                    hasScored20GoalsInSeason: false, hasScored10GoalsInSeason: false, hasScoredHatTrick: false,
+                    isWhite: true, isBlack: false, isBrown: false, isGoalkeeper: false, isDefender: false,
+                    isMidfielder: true, isForward: false, isLeftFooted: false, isRightFooted: true,
+                    isTwoFooted: false, isCaptainOfClub: false, hasWonBallonDor: false, hasWonWorldCup: false,
+                    hasPlayedInWorldCup: true, hasPlayedInEuros: true, hasWonChampionsLeague: false,
+                    hasWonDomesticLeague: true, hasWonAFCON: false, hasWonCopaAmerica: false,
+                    hasPlayedInPL: false, hasPlayedInLaLiga: true, hasPlayedInBundesliga: false,
+                    hasPlayedInSerieA: false, hasPlayedInLigue1: false, hasPlayedInMLS: false,
+                    isOver30: false, isUnder21: false, isUnder25: false, hasTattoosVisible: false,
+                    hasFacialHair: false, hasLongHair: false, hasDyedHair: true, hasPlayedForNationalTeam: true,
+                    isClubLegend: false, hasWonGoldenBoot: false, hasMoreThan3MillionFollowers: true,
+                    hasMoreThan10MillionFollowers: true, isCurrentlyInTop5League: true, hasPlayedFor2OrMoreClubs: true,
+                    hasPlayedForTop3Clubs: true, hasTransferFeeOver50M: true, isKnownForDribbling: false,
+                    isKnownForHeading: false, isKnownForPace: false, isKnownForPassing: true,
+                    hasPlayedWithMessi: true, hasPlayedWithRonaldo: false, hasPlayedInUCLFinal: false,
+                    hasPenaltyMissInCareer: false, hasWornNumber10: false, hasWornNumber7: false,
+                    hasWornNumber1: false, hasRedCardHistory: true, hasWonDomesticCup: true,
+                    hasWonTreble: false, isCurrentlyInjured: false, hasReleasedBook: false,
+                    hasActedInCommercials: true, isKnownForCelebration: false, hasScoredInDerby: false
+                },
+                "jude_bellingham": {
+                    hasScored20GoalsInSeason: false, hasScored10GoalsInSeason: true, hasScoredHatTrick: false,
+                    isWhite: false, isBlack: true, isBrown: false, isGoalkeeper: false, isDefender: false,
+                    isMidfielder: true, isForward: false, isLeftFooted: false, isRightFooted: true,
+                    isTwoFooted: false, isCaptainOfClub: false, hasWonBallonDor: false, hasWonWorldCup: false,
+                    hasPlayedInWorldCup: true, hasPlayedInEuros: true, hasWonChampionsLeague: true,
+                    hasWonDomesticLeague: true, hasWonAFCON: false, hasWonCopaAmerica: false,
+                    hasPlayedInPL: false, hasPlayedInLaLiga: true, hasPlayedInBundesliga: true,
+                    hasPlayedInSerieA: false, hasPlayedInLigue1: false, hasPlayedInMLS: false,
+                    isOver30: false, isUnder21: false, isUnder25: true, hasTattoosVisible: true,
+                    hasFacialHair: false, hasLongHair: false, hasDyedHair: false, hasPlayedForNationalTeam: true,
+                    isClubLegend: false, hasWonGoldenBoot: false, hasMoreThan3MillionFollowers: true,
+                    hasMoreThan10MillionFollowers: true, isCurrentlyInTop5League: true, hasPlayedFor2OrMoreClubs: true,
+                    hasPlayedForTop3Clubs: true, hasTransferFeeOver50M: true, isKnownForDribbling: true,
+                    isKnownForHeading: true, isKnownForPace: false, isKnownForPassing: true,
+                    hasPlayedWithMessi: false, hasPlayedWithRonaldo: false, hasPlayedInUCLFinal: true,
+                    hasPenaltyMissInCareer: false, hasWornNumber10: false, hasWornNumber7: false,
+                    hasWornNumber1: false, hasRedCardHistory: false, hasWonDomesticCup: false,
+                    hasWonTreble: false, isCurrentlyInjured: false, hasReleasedBook: false,
+                    hasActedInCommercials: true, isKnownForCelebration: true, hasScoredInDerby: true
+                }
+            };
+            
+            const profile = expandedProfiles[playerId];
             if (profile && profile[questionId] !== undefined) {
                 return profile[questionId];
             }
-            // Default to false for unknown players/questions
-            return false;
+            
+            // Random answers for unknown players to make game playable
+            const randomSeed = playerId.length + questionId.length;
+            return (randomSeed % 3) === 0; // Roughly 33% true, 67% false
         }
 
         // Authentication
@@ -1208,7 +1260,7 @@
             }
             
             const roomRef = doc(db, 'rooms', currentRoom.id);
-            universalListener = onSnapshot(roomRef, (doc) => {
+            universalListener = onSnapshot(roomRef, async (doc) => {
                 if (doc.exists()) {
                     const roomData = doc.data();
                     const currentScreen = document.querySelector('.screen.active').id;
@@ -1242,8 +1294,23 @@
                             
                             if (selections.host && selections.guest && currentScreen === 'waiting-screen') {
                                 console.log('Both players selected, starting gameplay from universal listener');
-                                startGameplay();
+                                // Update phase to gameplay
+                                const roomRef = doc(db, 'rooms', currentRoom.id);
+                                try {
+                                    await updateDoc(roomRef, {
+                                        'gameState.phase': 'gameplay'
+                                    });
+                                    startGameplay();
+                                } catch (error) {
+                                    console.error('Error updating phase:', error);
+                                    startGameplay();
+                                }
                             }
+                        }
+                        
+                        // Handle gameplay phase
+                        if (roomData.gameState.phase === 'gameplay' && currentScreen !== 'gameplay-screen') {
+                            startGameplay();
                         }
                         
                         // Update gameplay UI if in game
@@ -1324,6 +1391,14 @@
             console.log('Starting player selection for user:', currentUser.uid);
             showScreen('player-selection-screen');
             populatePlayersGrid();
+            
+            // Initialize game state phase to gameplay if both players have selected
+            if (gameState.selections && gameState.selections.host && gameState.selections.guest) {
+                console.log('Both players already selected, moving to gameplay');
+                setTimeout(() => {
+                    startGameplay();
+                }, 1000);
+            }
         }
 
         function populatePlayersGrid() {
@@ -1335,9 +1410,11 @@
                 playerCard.className = 'player-card';
                 playerCard.dataset.playerId = player.id;
                 
+                // Create initials fallback
+                const initials = player.name.split(' ').map(n => n[0]).join('');
+                
                 playerCard.innerHTML = `
-                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
-                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='10px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="player-image" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;">${initials}</div>
                     <div class="player-card-name">${player.name}</div>
                 `;
                 
@@ -1381,10 +1458,17 @@
                 
                 if (updatedSelections.host && updatedSelections.guest) {
                     console.log('Both players have selected! Starting gameplay immediately...');
+                    // Update game state to gameplay phase
+                    await updateDoc(roomRef, {
+                        [`gameState.phase`]: 'gameplay'
+                    });
+                    
                     gameState = {
                         ...currentRoomData.gameState,
-                        selections: updatedSelections
+                        selections: updatedSelections,
+                        phase: 'gameplay'
                     };
+                    
                     setTimeout(() => {
                         startGameplay();
                     }, 1000);
@@ -1433,9 +1517,10 @@
                     playerCard.classList.add('eliminated');
                 }
                 
+                const initials = player.name.split(' ').map(n => n[0]).join('');
+                
                 playerCard.innerHTML = `
-                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
-                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='10px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="player-image" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;">${initials}</div>
                     <div class="player-card-name">${player.name}</div>
                 `;
                 
@@ -1603,9 +1688,10 @@
                     guessCard.classList.add('eliminated');
                 }
                 
+                const initials = player.name.split(' ').map(n => n[0]).join('');
+                
                 guessCard.innerHTML = `
-                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
-                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='8px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="player-image" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; margin-bottom: 5px;">${initials}</div>
                     <div class="guess-card-name">${player.name}</div>
                 `;
                 
