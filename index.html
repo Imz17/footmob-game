@@ -95,6 +95,10 @@
             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
         }
 
+        .button.danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
         .input-group {
             margin: 20px 0;
         }
@@ -224,6 +228,9 @@
             width: 90%;
             max-width: 350px;
             text-align: center;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .close-modal {
@@ -309,6 +316,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border: 3px solid transparent;
+            position: relative;
         }
 
         .player-card:hover {
@@ -319,6 +327,22 @@
         .player-card.selected {
             border-color: #FFD700;
             background: rgba(255,215,0,0.2);
+        }
+
+        .player-card.eliminated {
+            opacity: 0.3;
+            background: rgba(150,150,150,0.5);
+            cursor: not-allowed;
+        }
+
+        .player-card.eliminated::after {
+            content: '❌';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: red;
         }
 
         .player-card img {
@@ -352,7 +376,7 @@
         }
 
         .questions-container {
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
             margin: 20px 0;
         }
@@ -366,6 +390,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            font-size: 14px;
         }
 
         .question-item:hover {
@@ -437,6 +462,74 @@
             color: #FFD700;
         }
 
+        .victory-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .victory-title {
+            font-size: 32px;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+
+        .victory-message {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .guess-modal .modal-content {
+            max-height: 70vh;
+        }
+
+        .guess-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .guess-card {
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .guess-card:hover {
+            background: rgba(255,255,255,1);
+            transform: scale(1.05);
+        }
+
+        .guess-card.selected {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .guess-card.eliminated {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .guess-card img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 5px;
+        }
+
+        .guess-card-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 10px;
@@ -452,6 +545,10 @@
             }
 
             .player-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .guess-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
@@ -581,13 +678,33 @@
                 </div>
             </div>
 
+            <div style="display: flex; gap: 10px; margin: 20px 0;">
+                <button id="make-guess-btn" class="button secondary">🎯 Make Final Guess</button>
+                <button id="show-grid-btn" class="button secondary">👥 Show Grid</button>
+            </div>
+
             <div class="game-log" id="game-log">
                 <h4 style="color: #FFD700; margin-bottom: 10px;">Game Log:</h4>
                 <div id="log-entries"></div>
             </div>
 
-            <button id="make-guess-btn" class="button secondary">🎯 Make Final Guess</button>
             <button id="quit-game-btn" class="button" style="background: #666; margin-top: 10px;">← Quit Game</button>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victory-screen" class="screen">
+            <div class="victory-screen">
+                <div class="victory-title" id="victory-title">🏆 VICTORY!</div>
+                <div class="victory-message" id="victory-message">Congratulations! You won the game!</div>
+                <div style="margin: 30px 0;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
+                        <div style="color: #FFD700; margin-bottom: 10px;">The correct player was:</div>
+                        <div id="correct-player" style="font-size: 24px; font-weight: bold;"></div>
+                    </div>
+                </div>
+                <button id="play-again-btn" class="button success">Play Again</button>
+                <button id="back-to-lobby-btn" class="button" style="background: #666; margin-top: 10px;">← Back to Lobby</button>
+            </div>
         </div>
 
         <!-- Create Room Modal -->
@@ -619,6 +736,34 @@
                 <button id="confirm-join-room-btn" class="button">Join Room</button>
             </div>
         </div>
+
+        <!-- Make Guess Modal -->
+        <div id="make-guess-modal" class="modal guess-modal">
+            <div class="modal-content">
+                <button class="close-modal" onclick="closeGuessModal()">×</button>
+                <h3 style="margin-bottom: 20px; color: #FFD700;">Make Your Final Guess</h3>
+                <p style="color: #E0E0E0; margin-bottom: 20px;">Who do you think your opponent chose?</p>
+                
+                <div id="guess-grid" class="guess-grid">
+                    <!-- Guess options will be populated here -->
+                </div>
+                
+                <button id="confirm-guess-btn" class="button danger" style="display: none;">Confirm Guess</button>
+            </div>
+        </div>
+
+        <!-- Player Grid Modal -->
+        <div id="player-grid-modal" class="modal">
+            <div class="modal-content">
+                <button class="close-modal" onclick="closePlayerGridModal()">×</button>
+                <h3 style="margin-bottom: 20px; color: #FFD700;">Player Grid</h3>
+                <p style="color: #E0E0E0; margin-bottom: 20px;">Click to eliminate/restore players</p>
+                
+                <div id="modal-players-grid" class="player-grid">
+                    <!-- Players will be populated here -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase Configuration -->
@@ -645,164 +790,165 @@
 
         // Game Data
         const players = [
-            { id: "leroy_sane", name: "Leroy Sané", image: "leroy_sane.png" },
-            { id: "kingsley_coman", name: "Kingsley Coman", image: "kingsley_coman.png" },
-            { id: "joao_felix", name: "João Félix", image: "joao_felix.png" },
-            { id: "phil_foden", name: "Phil Foden", image: "phil_foden.png" },
-            { id: "bukayo_saka", name: "Bukayo Saka", image: "bukayo_saka.png" },
-            { id: "jamal_musiala", name: "Jamal Musiala", image: "jamal_musiala.png" },
-            { id: "jude_bellingham", name: "Jude Bellingham", image: "jude_bellingham.png" },
-            { id: "rafael_leao", name: "Rafael Leão", image: "rafael_leao.png" },
-            { id: "vinicius_junior", name: "Vinícius Júnior", image: "vinicius_junior.png" },
-            { id: "rodrygo", name: "Rodrygo", image: "rodrygo.png" },
-            { id: "antony", name: "Antony", image: "antony.png" },
-            { id: "gabriel_martinelli", name: "Gabriel Martinelli", image: "gabriel_martinelli.png" },
-            { id: "ansu_fati", name: "Ansu Fati", image: "ansu_fati.png" },
-            { id: "gavi", name: "Gavi", image: "gavi.png" },
-            { id: "pedri", name: "Pedri", image: "pedri.png" },
-            { id: "eduardo_camavinga", name: "Eduardo Camavinga", image: "eduardo_camavinga.png" },
-            { id: "aurelien_tchouameni", name: "Aurélien Tchouaméni", image: "aurelien_tchouameni.png" },
-            { id: "manuel_ugarte", name: "Manuel Ugarte", image: "manuel_ugarte.png" },
-            { id: "khvicha_kvaratskhelia", name: "Khvicha Kvaratskhelia", image: "khvicha_kvaratskhelia.png" },
-            { id: "nico_williams", name: "Nico Williams", image: "nico_williams.png" },
-            { id: "alejandro_garnacho", name: "Alejandro Garnacho", image: "alejandro_garnacho.png" },
-            { id: "rasmus_hojlund", name: "Rasmus Højlund", image: "rasmus_hojlund.png" },
-            { id: "dominik_szoboszlai", name: "Dominik Szoboszlai", image: "dominik_szoboszlai.png" },
-            { id: "xavi_simons", name: "Xavi Simons", image: "xavi_simons.png" }
+            { id: "leroy_sane", name: "Leroy Sané" },
+            { id: "bukayo_saka", name: "Bukayo Saka" },
+            { id: "pedri", name: "Pedri" },
+            { id: "frenkie_de_jong", name: "Frenkie De Jong" },
+            { id: "julian_alvarez", name: "Julian Alvarez" },
+            { id: "cole_palmer", name: "Cole Palmer" },
+            { id: "moussa_diaby", name: "Moussa Diaby" },
+            { id: "jamal_musiala", name: "Jamal Musiala" },
+            { id: "joao_felix", name: "João Félix" },
+            { id: "rafael_leao", name: "Rafael Leão" },
+            { id: "khvicha_kvaratskhelia", name: "Khvicha Kvaratskhelia" },
+            { id: "florian_wirtz", name: "Florian Wirtz" },
+            { id: "martin_odegaard", name: "Martin Ødegaard" },
+            { id: "christopher_nkunku", name: "Christopher Nkunku" },
+            { id: "matheus_cunha", name: "Matheus Cunha" },
+            { id: "gavi", name: "Gavi" },
+            { id: "nico_williams", name: "Nico Williams" },
+            { id: "jeremy_doku", name: "Jérémy Doku" },
+            { id: "jude_bellingham", name: "Jude Bellingham" },
+            { id: "rasmus_hojlund", name: "Rasmus Højlund" },
+            { id: "alejandro_garnacho", name: "Alejandro Garnacho" },
+            { id: "gabriel_martinelli", name: "Gabriel Martinelli" },
+            { id: "ansu_fati", name: "Ansu Fati" },
+            { id: "youssoufa_moukoko", name: "Youssoufa Moukoko" }
         ];
 
         const questions = [
-            {
-                id: 1,
-                question: "Has he scored 20+ goals in a season?",
-                answers: {
-                    "leroy_sane": true, "kingsley_coman": false, "joao_felix": true, "phil_foden": true,
-                    "bukayo_saka": true, "jamal_musiala": false, "jude_bellingham": true, "rafael_leao": true,
-                    "vinicius_junior": true, "rodrygo": false, "antony": false, "gabriel_martinelli": false,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": false, "khvicha_kvaratskhelia": true,
-                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": false
-                }
-            },
-            {
-                id: 2,
-                question: "Is he currently playing in the Premier League?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": true,
-                    "bukayo_saka": true, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
-                    "vinicius_junior": false, "rodrygo": false, "antony": true, "gabriel_martinelli": true,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
-                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": true,
-                    "dominik_szoboszlai": true, "xavi_simons": false
-                }
-            },
-            {
-                id: 3,
-                question: "Is he under 23 years old?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
-                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
-                    "vinicius_junior": false, "rodrygo": true, "antony": false, "gabriel_martinelli": true,
-                    "ansu_fati": true, "gavi": true, "pedri": true, "eduardo_camavinga": true,
-                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
-                    "nico_williams": true, "alejandro_garnacho": true, "rasmus_hojlund": true,
-                    "dominik_szoboszlai": true, "xavi_simons": true
-                }
-            },
-            {
-                id: 4,
-                question: "Has he won the Champions League?",
-                answers: {
-                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": false, "phil_foden": true,
-                    "bukayo_saka": false, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
-                    "vinicius_junior": true, "rodrygo": true, "antony": false, "gabriel_martinelli": false,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": true,
-                    "aurelien_tchouameni": true, "manuel_ugarte": false, "khvicha_kvaratskhelia": false,
-                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": false
-                }
-            },
-            {
-                id: 5,
-                question: "Is he from South America?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
-                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
-                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": true,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
-                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": false
-                }
-            },
-            {
-                id: 6,
-                question: "Does he play as a winger?",
-                answers: {
-                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": false, "phil_foden": true,
-                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": false, "rafael_leao": true,
-                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": true,
-                    "ansu_fati": true, "gavi": false, "pedri": false, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": false, "khvicha_kvaratskhelia": true,
-                    "nico_williams": true, "alejandro_garnacho": true, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": true
-                }
-            },
-            {
-                id: 7,
-                question: "Is he white?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": true, "phil_foden": true,
-                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
-                    "vinicius_junior": false, "rodrygo": false, "antony": false, "gabriel_martinelli": false,
-                    "ansu_fati": false, "gavi": true, "pedri": true, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
-                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": true,
-                    "dominik_szoboszlai": true, "xavi_simons": true
-                }
-            },
-            {
-                id: 8,
-                question: "Has he played in a World Cup?",
-                answers: {
-                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": true, "phil_foden": true,
-                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
-                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": false,
-                    "ansu_fati": true, "gavi": true, "pedri": true, "eduardo_camavinga": true,
-                    "aurelien_tchouameni": true, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
-                    "nico_williams": true, "alejandro_garnacho": false, "rasmus_hojlund": true,
-                    "dominik_szoboszlai": true, "xavi_simons": false
-                }
-            },
-            {
-                id: 9,
-                question: "Does he play for Real Madrid?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
-                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": true, "rafael_leao": false,
-                    "vinicius_junior": true, "rodrygo": true, "antony": false, "gabriel_martinelli": false,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": true,
-                    "aurelien_tchouameni": true, "manuel_ugarte": false, "khvicha_kvaratskhelia": false,
-                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": false
-                }
-            },
-            {
-                id: 10,
-                question: "Is his shirt number greater than 20?",
-                answers: {
-                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": true, "phil_foden": false,
-                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
-                    "vinicius_junior": false, "rodrygo": false, "antony": true, "gabriel_martinelli": false,
-                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
-                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
-                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
-                    "dominik_szoboszlai": false, "xavi_simons": false
-                }
-            }
+            { id: "hasScored20GoalsInSeason", text: "Has the player ever scored more than 20 goals in a single season?" },
+            { id: "hasScored10GoalsInSeason", text: "Has the player ever scored more than 10 goals in a single season?" },
+            { id: "hasScoredHatTrick", text: "Has the player scored a professional hat-trick?" },
+            { id: "isWhite", text: "Is the player's skin colour white?" },
+            { id: "isBlack", text: "Is the player's skin colour black?" },
+            { id: "isBrown", text: "Is the player's skin colour brown?" },
+            { id: "isGoalkeeper", text: "Is the player a goalkeeper?" },
+            { id: "isDefender", text: "Is the player a defender?" },
+            { id: "isMidfielder", text: "Is the player a midfielder?" },
+            { id: "isForward", text: "Is the player a forward?" },
+            { id: "isLeftFooted", text: "Is the player left-footed?" },
+            { id: "isRightFooted", text: "Is the player right-footed?" },
+            { id: "isTwoFooted", text: "Is the player equally good with both feet?" },
+            { id: "isCaptainOfClub", text: "Is the player the captain of their current club?" },
+            { id: "hasWonBallonDor", text: "Has the player won the Ballon d'Or?" },
+            { id: "hasWonWorldCup", text: "Has the player won a World Cup?" },
+            { id: "hasPlayedInWorldCup", text: "Has the player played in a World Cup tournament?" },
+            { id: "hasPlayedInEuros", text: "Has the player played in the UEFA Euro tournament?" },
+            { id: "hasWonChampionsLeague", text: "Has the player won the UEFA Champions League?" },
+            { id: "hasWonDomesticLeague", text: "Has the player won a domestic league title?" },
+            { id: "hasWonAFCON", text: "Has the player won the Africa Cup of Nations?" },
+            { id: "hasWonCopaAmerica", text: "Has the player won the Copa América?" },
+            { id: "hasPlayedInPL", text: "Has the player played in the Premier League?" },
+            { id: "hasPlayedInLaLiga", text: "Has the player played in La Liga?" },
+            { id: "hasPlayedInBundesliga", text: "Has the player played in the Bundesliga?" },
+            { id: "hasPlayedInSerieA", text: "Has the player played in Serie A?" },
+            { id: "hasPlayedInLigue1", text: "Has the player played in Ligue 1?" },
+            { id: "hasPlayedInMLS", text: "Has the player played in MLS?" },
+            { id: "isOver30", text: "Is the player over 30 years old?" },
+            { id: "isUnder21", text: "Is the player under 21 years old?" },
+            { id: "isUnder25", text: "Is the player under 25 years old?" },
+            { id: "hasTattoosVisible", text: "Does the player have visible tattoos?" },
+            { id: "hasFacialHair", text: "Does the player currently have facial hair?" },
+            { id: "hasLongHair", text: "Does the player have long hair?" },
+            { id: "hasDyedHair", text: "Has the player ever dyed their hair?" },
+            { id: "hasPlayedForNationalTeam", text: "Has the player played for their national team?" },
+            { id: "isClubLegend", text: "Is the player considered a club legend?" },
+            { id: "hasWonGoldenBoot", text: "Has the player ever won a Golden Boot award?" },
+            { id: "hasMoreThan3MillionFollowers", text: "Does the player have more than 3 million Instagram followers?" },
+            { id: "hasMoreThan10MillionFollowers", text: "Does the player have more than 10 million Instagram followers?" },
+            { id: "isCurrentlyInTop5League", text: "Is the player currently in one of the top 5 European leagues?" },
+            { id: "hasPlayedFor2OrMoreClubs", text: "Has the player played for more than one professional club?" },
+            { id: "hasPlayedForTop3Clubs", text: "Has the player played for one of the top 3 richest clubs in Europe?" },
+            { id: "hasTransferFeeOver50M", text: "Was the player's transfer fee over €50 million?" },
+            { id: "isKnownForDribbling", text: "Is the player known for dribbling?" },
+            { id: "isKnownForHeading", text: "Is the player known for heading ability?" },
+            { id: "isKnownForPace", text: "Is the player known for their pace?" },
+            { id: "isKnownForPassing", text: "Is the player known for passing?" },
+            { id: "hasPlayedWithMessi", text: "Has the player ever played with Lionel Messi?" },
+            { id: "hasPlayedWithRonaldo", text: "Has the player ever played with Cristiano Ronaldo?" },
+            { id: "hasPlayedInUCLFinal", text: "Has the player appeared in a UEFA Champions League final?" },
+            { id: "hasPenaltyMissInCareer", text: "Has the player missed a professional penalty?" },
+            { id: "hasWornNumber10", text: "Has the player worn the number 10 shirt?" },
+            { id: "hasWornNumber7", text: "Has the player worn the number 7 shirt?" },
+            { id: "hasWornNumber1", text: "Has the player worn the number 1 shirt?" },
+            { id: "hasRedCardHistory", text: "Has the player received a red card in their career?" },
+            { id: "hasWonDomesticCup", text: "Has the player won a domestic cup (e.g. FA Cup, Copa del Rey)?" },
+            { id: "hasWonTreble", text: "Has the player won a treble in their career?" },
+            { id: "isCurrentlyInjured", text: "Is the player currently injured?" },
+            { id: "hasReleasedBook", text: "Has the player released an autobiography or book?" },
+            { id: "hasActedInCommercials", text: "Has the player appeared in TV or online commercials?" },
+            { id: "isKnownForCelebration", text: "Is the player known for a unique celebration?" },
+            { id: "hasScoredInDerby", text: "Has the player scored in a derby match?" }
         ];
+
+        // Player profiles with answers to all questions
+        const playerProfiles = {
+            "leroy_sane": {
+                hasScored20GoalsInSeason: true, hasScored10GoalsInSeason: true, hasScoredHatTrick: true,
+                isWhite: false, isBlack: false, isBrown: true, isGoalkeeper: false, isDefender: false,
+                isMidfielder: false, isForward: true, isLeftFooted: true, isRightFooted: false,
+                isTwoFooted: false, isCaptainOfClub: false, hasWonBallonDor: false, hasWonWorldCup: false,
+                hasPlayedInWorldCup: true, hasPlayedInEuros: true, hasWonChampionsLeague: true,
+                hasWonDomesticLeague: true, hasWonAFCON: false, hasWonCopaAmerica: false,
+                hasPlayedInPL: true, hasPlayedInLaLiga: false, hasPlayedInBundesliga: true,
+                hasPlayedInSerieA: false, hasPlayedInLigue1: false, hasPlayedInMLS: false,
+                isOver30: false, isUnder21: false, isUnder25: false, hasTattoosVisible: true,
+                hasFacialHair: false, hasLongHair: false, hasDyedHair: false, hasPlayedForNationalTeam: true,
+                isClubLegend: false, hasWonGoldenBoot: false, hasMoreThan3MillionFollowers: true,
+                hasMoreThan10MillionFollowers: false, isCurrentlyInTop5League: true, hasPlayedFor2OrMoreClubs: true,
+                hasPlayedForTop3Clubs: true, hasTransferFeeOver50M: true, isKnownForDribbling: true,
+                isKnownForHeading: false, isKnownForPace: true, isKnownForPassing: false,
+                hasPlayedWithMessi: false, hasPlayedWithRonaldo: false, hasPlayedInUCLFinal: true,
+                hasPenaltyMissInCareer: true, hasWornNumber10: false, hasWornNumber7: false,
+                hasWornNumber1: false, hasRedCardHistory: true, hasWonDomesticCup: true,
+                hasWonTreble: false, isCurrentlyInjured: false, hasReleasedBook: false,
+                hasActedInCommercials: true, isKnownForCelebration: false, hasScoredInDerby: true
+            },
+            "bukayo_saka": {
+                hasScored20GoalsInSeason: false, hasScored10GoalsInSeason: true, hasScoredHatTrick: false,
+                isWhite: false, isBlack: true, isBrown: false, isGoalkeeper: false, isDefender: false,
+                isMidfielder: false, isForward: true, isLeftFooted: true, isRightFooted: false,
+                isTwoFooted: false, isCaptainOfClub: false, hasWonBallonDor: false, hasWonWorldCup: false,
+                hasPlayedInWorldCup: true, hasPlayedInEuros: true, hasWonChampionsLeague: false,
+                hasWonDomesticLeague: false, hasWonAFCON: false, hasWonCopaAmerica: false,
+                hasPlayedInPL: true, hasPlayedInLaLiga: false, hasPlayedInBundesliga: false,
+                hasPlayedInSerieA: false, hasPlayedInLigue1: false, hasPlayedInMLS: false,
+                isOver30: false, isUnder21: false, isUnder25: true, hasTattoosVisible: false,
+                hasFacialHair: false, hasLongHair: false, hasDyedHair: false, hasPlayedForNationalTeam: true,
+                isClubLegend: false, hasWonGoldenBoot: false, hasMoreThan3MillionFollowers: true,
+                hasMoreThan10MillionFollowers: false, isCurrentlyInTop5League: true, hasPlayedFor2OrMoreClubs: false,
+                hasPlayedForTop3Clubs: false, hasTransferFeeOver50M: false, isKnownForDribbling: true,
+                isKnownForHeading: false, isKnownForPace: true, isKnownForPassing: false,
+                hasPlayedWithMessi: false, hasPlayedWithRonaldo: false, hasPlayedInUCLFinal: false,
+                hasPenaltyMissInCareer: true, hasWornNumber10: false, hasWornNumber7: true,
+                hasWornNumber1: false, hasRedCardHistory: false, hasWonDomesticCup: true,
+                hasWonTreble: false, isCurrentlyInjured: false, hasReleasedBook: false,
+                hasActedInCommercials: true, isKnownForCelebration: false, hasScoredInDerby: true
+            },
+            "pedri": {
+                hasScored20GoalsInSeason: false, hasScored10GoalsInSeason: false, hasScoredHatTrick: false,
+                isWhite: true, isBlack: false, isBrown: false, isGoalkeeper: false, isDefender: false,
+                isMidfielder: true, isForward: false, isLeftFooted: false, isRightFooted: true,
+                isTwoFooted: false, isCaptainOfClub: false, hasWonBallonDor: false, hasWonWorldCup: false,
+                hasPlayedInWorldCup: true, hasPlayedInEuros: true, hasWonChampionsLeague: false,
+                hasWonDomesticLeague: true, hasWonAFCON: false, hasWonCopaAmerica: false,
+                hasPlayedInPL: false, hasPlayedInLaLiga: true, hasPlayedInBundesliga: false,
+                hasPlayedInSerieA: false, hasPlayedInLigue1: false, hasPlayedInMLS: false,
+                isOver30: false, isUnder21: false, isUnder25: true, hasTattoosVisible: false,
+                hasFacialHair: false, hasLongHair: false, hasDyedHair: false, hasPlayedForNationalTeam: true,
+                isClubLegend: false, hasWonGoldenBoot: false, hasMoreThan3MillionFollowers: true,
+                hasMoreThan10MillionFollowers: true, isCurrentlyInTop5League: true, hasPlayedFor2OrMoreClubs: false,
+                hasPlayedForTop3Clubs: true, hasTransferFeeOver50M: false, isKnownForDribbling: true,
+                isKnownForHeading: false, isKnownForPace: false, isKnownForPassing: true,
+                hasPlayedWithMessi: true, hasPlayedWithRonaldo: false, hasPlayedInUCLFinal: false,
+                hasPenaltyMissInCareer: false, hasWornNumber10: false, hasWornNumber7: false,
+                hasWornNumber1: false, hasRedCardHistory: false, hasWonDomesticCup: true,
+                hasWonTreble: false, isCurrentlyInjured: false, hasReleasedBook: false,
+                hasActedInCommercials: true, isKnownForCelebration: false, hasScoredInDerby: true
+            }
+            // Add more player profiles as needed - for demo purposes, we'll use these 3 and default others to false
+        };
 
         // Global variables
         let currentUser = null;
@@ -813,6 +959,8 @@
         let selectedQuestion = null;
         let gameState = {};
         let usedQuestions = [];
+        let eliminatedPlayers = new Set();
+        let selectedGuessPlayer = null;
 
         // Utility functions
         function generateRoomCode() {
@@ -840,6 +988,15 @@
             setTimeout(() => {
                 errorDiv.remove();
             }, 3000);
+        }
+
+        function getPlayerAnswer(playerId, questionId) {
+            const profile = playerProfiles[playerId];
+            if (profile && profile[questionId] !== undefined) {
+                return profile[questionId];
+            }
+            // Default to false for unknown players/questions
+            return false;
         }
 
         // Authentication
@@ -976,8 +1133,6 @@
                 
                 closeCreateRoomModal();
                 enterGameRoom(true);
-                
-                // Start listening for game state changes immediately for hosts too
                 startUniversalGameListener();
                 
             } catch (error) {
@@ -1034,8 +1189,6 @@
                 
                 closeJoinRoomModal();
                 enterGameRoom(false);
-                
-                // Start listening for game state changes immediately for guests
                 startUniversalGameListener();
                 
             } catch (error) {
@@ -1044,7 +1197,7 @@
             }
         });
 
-        // Universal game state listener - works for both host and guest
+        // Universal game state listener
         let universalListener = null;
         
         function startUniversalGameListener() {
@@ -1069,7 +1222,7 @@
                         // Check if game should start
                         if (roomData.status === 'playing') {
                             console.log('GAME STARTING! Transitioning to player selection...');
-                            universalListener(); // Stop this listener
+                            universalListener();
                             universalListener = null;
                             startPlayerSelection();
                             return;
@@ -1098,6 +1251,11 @@
                             updateGameplayUI();
                             updateGameLog();
                         }
+                        
+                        // Check for game winner
+                        if (roomData.gameState.winner && currentScreen !== 'victory-screen') {
+                            showVictoryScreen(roomData.gameState);
+                        }
                     }
                 }
             });
@@ -1108,8 +1266,6 @@
             showScreen('game-room-screen');
             document.getElementById('room-code-text').textContent = currentRoom.roomCode;
             document.getElementById('host-name').textContent = currentRoom.players.host.username;
-            
-            // The universal listener will handle all updates
         }
 
         function updateGameRoomUI(roomData) {
@@ -1152,7 +1308,8 @@
                         selections: {},
                         turn: 'host',
                         questions: [],
-                        gameLog: []
+                        gameLog: [],
+                        winner: null
                     }
                 });
                 console.log('Game state updated to playing');
@@ -1165,11 +1322,8 @@
         // Player selection functionality
         function startPlayerSelection() {
             console.log('Starting player selection for user:', currentUser.uid);
-            
             showScreen('player-selection-screen');
             populatePlayersGrid();
-            
-            // The universal listener will handle all further updates
         }
 
         function populatePlayersGrid() {
@@ -1182,7 +1336,7 @@
                 playerCard.dataset.playerId = player.id;
                 
                 playerCard.innerHTML = `
-                    <img src="${player.image}" alt="${player.name}" 
+                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
                          onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='10px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
                     <div class="player-card-name">${player.name}</div>
                 `;
@@ -1208,12 +1362,10 @@
                 
                 console.log('Confirming player selection:', selectedPlayer, 'for role:', role);
                 
-                // Get current room data first
                 const roomDoc = await getDoc(roomRef);
                 const currentRoomData = roomDoc.data();
                 const currentSelections = currentRoomData.gameState?.selections || {};
                 
-                // Update with the new selection
                 const updatedSelections = {
                     ...currentSelections,
                     [role]: selectedPlayer
@@ -1227,7 +1379,6 @@
                 
                 showScreen('waiting-screen');
                 
-                // Check immediately if both players have now selected
                 if (updatedSelections.host && updatedSelections.guest) {
                     console.log('Both players have selected! Starting gameplay immediately...');
                     gameState = {
@@ -1236,7 +1387,7 @@
                     };
                     setTimeout(() => {
                         startGameplay();
-                    }, 1000); // Small delay to ensure Firebase sync
+                    }, 1000);
                 }
                 
             } catch (error) {
@@ -1248,12 +1399,10 @@
         // Gameplay functionality
         function startGameplay() {
             console.log('Starting gameplay phase');
-            
             showScreen('gameplay-screen');
             populateQuestions();
+            populateModalPlayersGrid();
             updateGameplayUI();
-            
-            // The universal listener will handle all game updates
         }
 
         function populateQuestions() {
@@ -1264,11 +1413,45 @@
                 const questionItem = document.createElement('div');
                 questionItem.className = 'question-item';
                 questionItem.dataset.questionId = question.id;
-                questionItem.textContent = question.question;
+                questionItem.textContent = question.text;
                 
                 questionItem.addEventListener('click', () => selectQuestion(question.id, questionItem));
                 questionsContainer.appendChild(questionItem);
             });
+        }
+
+        function populateModalPlayersGrid() {
+            const modalPlayersGrid = document.getElementById('modal-players-grid');
+            modalPlayersGrid.innerHTML = '';
+            
+            players.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                playerCard.dataset.playerId = player.id;
+                
+                if (eliminatedPlayers.has(player.id)) {
+                    playerCard.classList.add('eliminated');
+                }
+                
+                playerCard.innerHTML = `
+                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
+                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='10px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="player-card-name">${player.name}</div>
+                `;
+                
+                playerCard.addEventListener('click', () => togglePlayerElimination(player.id, playerCard));
+                modalPlayersGrid.appendChild(playerCard);
+            });
+        }
+
+        function togglePlayerElimination(playerId, cardElement) {
+            if (eliminatedPlayers.has(playerId)) {
+                eliminatedPlayers.delete(playerId);
+                cardElement.classList.remove('eliminated');
+            } else {
+                eliminatedPlayers.add(playerId);
+                cardElement.classList.add('eliminated');
+            }
         }
 
         function selectQuestion(questionId, questionElement) {
@@ -1297,9 +1480,9 @@
                 
                 // Check if there's a pending question to answer
                 const lastQuestion = gameState.questions[gameState.questions.length - 1];
-                if (lastQuestion && !lastQuestion.answer) {
+                if (lastQuestion && lastQuestion.answer === null) {
                     answerMode.style.display = 'block';
-                    document.getElementById('current-question').textContent = lastQuestion.question;
+                    document.getElementById('current-question').textContent = lastQuestion.text;
                 } else {
                     answerMode.style.display = 'none';
                 }
@@ -1308,7 +1491,7 @@
             // Update used questions
             const usedQuestionIds = gameState.questions.map(q => q.id);
             document.querySelectorAll('.question-item').forEach(item => {
-                const questionId = parseInt(item.dataset.questionId);
+                const questionId = item.dataset.questionId;
                 if (usedQuestionIds.includes(questionId)) {
                     item.classList.add('used');
                 }
@@ -1337,7 +1520,7 @@
                 const question = questions.find(q => q.id === selectedQuestion);
                 const questionData = {
                     id: selectedQuestion,
-                    question: question.question,
+                    text: question.text,
                     askedBy: currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest',
                     answer: null
                 };
@@ -1368,15 +1551,25 @@
                 const roomRef = doc(db, 'rooms', currentRoom.id);
                 const questionIndex = gameState.questions.length - 1;
                 const updatedQuestions = [...gameState.questions];
-                updatedQuestions[questionIndex].answer = answer;
+                const currentQuestion = updatedQuestions[questionIndex];
                 
+                // Get the target player (the one being guessed)
                 const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+                const mySelectedPlayer = gameState.selections[myRole];
+                
+                // Get the correct answer from player profile
+                const correctAnswer = getPlayerAnswer(mySelectedPlayer, currentQuestion.id);
+                
+                updatedQuestions[questionIndex].answer = answer;
+                updatedQuestions[questionIndex].correctAnswer = correctAnswer;
+                
                 const opponentRole = myRole === 'host' ? 'guest' : 'host';
-                
-                const questionText = updatedQuestions[questionIndex].question;
+                const questionText = currentQuestion.text;
                 const answerText = answer ? 'YES' : 'NO';
-                const logEntry = `${questionText} - ${answerText}`;
+                const correctText = correctAnswer ? 'YES' : 'NO';
+                const resultText = answer === correctAnswer ? '✅' : '❌';
                 
+                const logEntry = `${questionText} - ${answerText} ${resultText} (Correct: ${correctText})`;
                 const newGameLog = [...(gameState.gameLog || []), logEntry];
                 
                 await updateDoc(roomRef, {
@@ -1391,6 +1584,147 @@
             }
         }
 
+        // Make guess functionality
+        document.getElementById('make-guess-btn').addEventListener('click', () => {
+            populateGuessGrid();
+            document.getElementById('make-guess-modal').classList.add('active');
+        });
+
+        function populateGuessGrid() {
+            const guessGrid = document.getElementById('guess-grid');
+            guessGrid.innerHTML = '';
+            
+            players.forEach(player => {
+                const guessCard = document.createElement('div');
+                guessCard.className = 'guess-card';
+                guessCard.dataset.playerId = player.id;
+                
+                if (eliminatedPlayers.has(player.id)) {
+                    guessCard.classList.add('eliminated');
+                }
+                
+                guessCard.innerHTML = `
+                    <img src="/assets/players/${player.id}.png" alt="${player.name}" 
+                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='8px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="guess-card-name">${player.name}</div>
+                `;
+                
+                if (!eliminatedPlayers.has(player.id)) {
+                    guessCard.addEventListener('click', () => selectGuessPlayer(player.id, guessCard));
+                }
+                
+                guessGrid.appendChild(guessCard);
+            });
+        }
+
+        function selectGuessPlayer(playerId, cardElement) {
+            if (eliminatedPlayers.has(playerId)) return;
+            
+            document.querySelectorAll('.guess-card').forEach(card => card.classList.remove('selected'));
+            cardElement.classList.add('selected');
+            selectedGuessPlayer = playerId;
+            document.getElementById('confirm-guess-btn').style.display = 'block';
+        }
+
+        document.getElementById('confirm-guess-btn').addEventListener('click', async () => {
+            if (!selectedGuessPlayer) return;
+            
+            try {
+                const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+                const opponentRole = myRole === 'host' ? 'guest' : 'host';
+                const opponentSelectedPlayer = gameState.selections[opponentRole];
+                
+                const isCorrect = selectedGuessPlayer === opponentSelectedPlayer;
+                const winner = isCorrect ? myRole : opponentRole;
+                
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                await updateDoc(roomRef, {
+                    'gameState.winner': winner,
+                    'gameState.finalGuess': {
+                        guesser: myRole,
+                        guessedPlayer: selectedGuessPlayer,
+                        correctPlayer: opponentSelectedPlayer,
+                        correct: isCorrect
+                    }
+                });
+                
+                closeGuessModal();
+                
+            } catch (error) {
+                console.error('Error making guess:', error);
+                showError('Failed to make guess');
+            }
+        });
+
+        // Show grid functionality
+        document.getElementById('show-grid-btn').addEventListener('click', () => {
+            populateModalPlayersGrid();
+            document.getElementById('player-grid-modal').classList.add('active');
+        });
+
+        // Victory screen
+        function showVictoryScreen(gameState) {
+            showScreen('victory-screen');
+            
+            const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+            const isWinner = gameState.winner === myRole;
+            
+            const victoryTitle = document.getElementById('victory-title');
+            const victoryMessage = document.getElementById('victory-message');
+            const correctPlayer = document.getElementById('correct-player');
+            
+            if (isWinner) {
+                victoryTitle.textContent = '🏆 VICTORY!';
+                victoryTitle.style.color = '#FFD700';
+                victoryMessage.textContent = 'Congratulations! You won the game!';
+            } else {
+                victoryTitle.textContent = '💔 DEFEAT';
+                victoryTitle.style.color = '#FF6B6B';
+                victoryMessage.textContent = 'Better luck next time!';
+            }
+            
+            // Show the correct player
+            const correctPlayerId = gameState.finalGuess?.correctPlayer;
+            if (correctPlayerId) {
+                const player = players.find(p => p.id === correctPlayerId);
+                correctPlayer.textContent = player ? player.name : 'Unknown';
+            }
+        }
+
+        // Play again functionality
+        document.getElementById('play-again-btn').addEventListener('click', async () => {
+            try {
+                // Reset game state
+                eliminatedPlayers.clear();
+                selectedPlayer = null;
+                selectedQuestion = null;
+                selectedGuessPlayer = null;
+                
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                await updateDoc(roomRef, {
+                    status: 'playing',
+                    gameState: {
+                        phase: 'player_selection',
+                        selections: {},
+                        turn: 'host',
+                        questions: [],
+                        gameLog: [],
+                        winner: null
+                    }
+                });
+                
+                startPlayerSelection();
+                
+            } catch (error) {
+                console.error('Error restarting game:', error);
+                showError('Failed to restart game');
+            }
+        });
+
+        document.getElementById('back-to-lobby-btn').addEventListener('click', () => {
+            leaveRoom();
+        });
+
         // Leave/quit functionality
         document.getElementById('leave-room-btn').addEventListener('click', async () => {
             await leaveRoom();
@@ -1401,9 +1735,9 @@
         });
 
         async function leaveRoom() {
-            if (roomListener) {
-                roomListener();
-                roomListener = null;
+            if (universalListener) {
+                universalListener();
+                universalListener = null;
             }
             
             if (currentRoom) {
@@ -1429,10 +1763,14 @@
                 }
             }
             
+            // Reset all game state
             currentRoom = null;
             selectedPlayer = null;
             selectedQuestion = null;
+            selectedGuessPlayer = null;
             gameState = {};
+            eliminatedPlayers.clear();
+            
             showScreen('room-lobby-screen');
             loadRooms();
         }
@@ -1446,6 +1784,17 @@
         window.closeJoinRoomModal = function() {
             document.getElementById('join-room-modal').classList.remove('active');
             document.getElementById('room-code-input').value = '';
+        };
+
+        window.closeGuessModal = function() {
+            document.getElementById('make-guess-modal').classList.remove('active');
+            selectedGuessPlayer = null;
+            document.getElementById('confirm-guess-btn').style.display = 'none';
+            document.querySelectorAll('.guess-card').forEach(card => card.classList.remove('selected'));
+        };
+
+        window.closePlayerGridModal = function() {
+            document.getElementById('player-grid-modal').classList.remove('active');
         };
 
         // Handle Enter key in inputs
@@ -1479,9 +1828,13 @@
             e.target.value = e.target.value.toUpperCase();
         });
 
-        // Make guess functionality (placeholder)
-        document.getElementById('make-guess-btn').addEventListener('click', () => {
-            alert('Make a guess feature coming soon! 🎯\n\nFor now, continue asking questions to narrow down your choices.');
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
