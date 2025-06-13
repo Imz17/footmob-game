@@ -1597,6 +1597,15 @@
             showScreen('gameplay-screen');
             populateQuestions();
             populateModalPlayersGrid();
+            
+            // Ensure gameState has required arrays
+            if (!gameState.questions) {
+                gameState.questions = [];
+            }
+            if (!gameState.gameLog) {
+                gameState.gameLog = [];
+            }
+            
             updateGameplayUI();
         }
 
@@ -1693,7 +1702,8 @@
                 questionMode.style.display = 'none';
                 
                 // Check if there's a pending question to answer
-                const lastQuestion = gameState.questions[gameState.questions.length - 1];
+                const questions = gameState.questions || [];
+                const lastQuestion = questions[questions.length - 1];
                 if (lastQuestion && lastQuestion.answer === null) {
                     answerMode.style.display = 'block';
                     document.getElementById('current-question').textContent = lastQuestion.text;
@@ -1703,7 +1713,7 @@
             }
             
             // Update used questions
-            const usedQuestionIds = gameState.questions.map(q => q.id);
+            const usedQuestionIds = (gameState.questions || []).map(q => q.id);
             document.querySelectorAll('.question-item').forEach(item => {
                 const questionId = item.dataset.questionId;
                 if (usedQuestionIds.includes(questionId)) {
@@ -1716,7 +1726,8 @@
             const logEntries = document.getElementById('log-entries');
             logEntries.innerHTML = '';
             
-            gameState.gameLog?.forEach(entry => {
+            const currentGameLog = gameState.gameLog || [];
+            currentGameLog.forEach(entry => {
                 const logEntry = document.createElement('div');
                 logEntry.className = 'log-entry';
                 logEntry.textContent = entry;
@@ -1740,7 +1751,8 @@
                 };
                 
                 const roomRef = doc(db, 'rooms', currentRoom.id);
-                const newQuestions = [...gameState.questions, questionData];
+                const currentQuestions = gameState.questions || [];
+                const newQuestions = [...currentQuestions, questionData];
                 
                 await updateDoc(roomRef, {
                     'gameState.questions': newQuestions
@@ -1766,8 +1778,9 @@
                 const roomDoc = await getDoc(roomRef);
                 const roomData = roomDoc.data();
                 
-                const questionIndex = gameState.questions.length - 1;
-                const updatedQuestions = [...gameState.questions];
+                const currentQuestions = gameState.questions || [];
+                const questionIndex = currentQuestions.length - 1;
+                const updatedQuestions = [...currentQuestions];
                 const currentQuestion = updatedQuestions[questionIndex];
                 
                 // Get the target player (the one being guessed)
@@ -1787,7 +1800,8 @@
                 const resultText = answer === correctAnswer ? '✅' : '❌';
                 
                 const logEntry = `${questionText} - ${answerText} ${resultText} (Correct: ${correctText})`;
-                const newGameLog = [...(gameState.gameLog || []), logEntry];
+                const currentGameLog = gameState.gameLog || [];
+                const newGameLog = [...currentGameLog, logEntry];
                 
                 await updateDoc(roomRef, {
                     'gameState.questions': updatedQuestions,
@@ -1872,7 +1886,14 @@
                 
                 const myRole = currentUser.uid === roomData.players.host.uid ? 'host' : 'guest';
                 const opponentRole = myRole === 'host' ? 'guest' : 'host';
-                const opponentSelectedPlayer = roomData.players[opponentRole].selectedPlayer;
+                
+                // Get opponent's selected player
+                const opponentSelectedPlayer = roomData.players[opponentRole]?.selectedPlayer;
+                
+                if (!opponentSelectedPlayer) {
+                    showError('Opponent player data not found');
+                    return;
+                }
                 
                 const isCorrect = selectedGuessPlayer === opponentSelectedPlayer;
                 const winner = isCorrect ? myRole : opponentRole;
