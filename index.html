@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+// Reset<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1249,7 +1249,7 @@
             }
         });
 
-        // Universal game state listener
+        // Universal game state listener - Fixed for proper synchronization
         let universalListener = null;
         
         function startUniversalGameListener() {
@@ -1265,59 +1265,83 @@
                     const roomData = doc.data();
                     const currentScreen = document.querySelector('.screen.active').id;
                     
-                    console.log('Universal listener - Room status:', roomData.status, 'Current screen:', currentScreen);
+                    console.log('Universal listener update:', {
+                        status: roomData.status,
+                        gameState: roomData.gameState,
+                        currentScreen: currentScreen,
+                        players: roomData.players
+                    });
                     
                     // Handle lobby updates
                     if (currentScreen === 'game-room-screen') {
                         updateGameRoomUI(roomData);
                         
-                        // Check if game should start
-                        if (roomData.status === 'playing') {
-                            console.log('GAME STARTING! Transitioning to player selection...');
-                            universalListener();
-                            universalListener = null;
-                            startPlayerSelection();
+                        // Check if both players are ready for game start
+                        const hostReady = roomData.players?.host?.playerReady || false;
+                        const guestReady = roomData.players?.guest?.playerReady || false;
+                        
+                        if (hostReady && guestReady) {
+                            // Show start button for host only
+                            const isHost = roomData.players.host.uid === currentUser.uid;
+                            const startBtn = document.getElementById('start-game-btn');
+                            if (isHost) {
+                                startBtn.style.display = 'block';
+                                startBtn.textContent = '🚀 Both Ready - Start Game!';
+                            }
+                        }
+                        
+                        // Check if game has started
+                        if (roomData.gameState?.inProgress) {
+                            console.log('Game is in progress, transitioning to gameplay');
+                            gameState = roomData.gameState;
+                            startGameplay();
                             return;
                         }
                     }
                     
-                    // Handle game state updates
-                    if (roomData.gameState && (currentScreen === 'player-selection-screen' || currentScreen === 'waiting-screen' || currentScreen === 'gameplay-screen')) {
-                        gameState = roomData.gameState;
-                        
-                        console.log('Game state update - Phase:', roomData.gameState.phase, 'Selections:', roomData.gameState.selections);
-                        
-                        // Check player selection completion
-                        if (roomData.gameState.phase === 'player_selection') {
-                            const selections = roomData.gameState.selections || {};
-                            console.log('Checking selections - Host:', selections.host, 'Guest:', selections.guest, 'Current screen:', currentScreen);
-                            
-                            if (selections.host && selections.guest && currentScreen === 'waiting-screen') {
-                                console.log('Both players selected, starting gameplay from universal listener');
-                                // Update phase to gameplay
-                                const roomRef = doc(db, 'rooms', currentRoom.id);
-                                try {
-                                    await updateDoc(roomRef, {
-                                        'gameState.phase': 'gameplay'
-                                    });
-                                    startGameplay();
-                                } catch (error) {
-                                    console.error('Error updating phase:', error);
-                                    startGameplay();
-                                }
-                            }
-                        }
-                        
-                        // Handle gameplay phase
-                        if (roomData.gameState.phase === 'gameplay' && currentScreen !== 'gameplay-screen') {
+                    // Handle player selection screen
+                    if (currentScreen === 'player-selection-screen') {
+                        // Check if game has started while in selection
+                        if (roomData.gameState?.inProgress) {
+                            console.log('Game started during selection, moving to gameplay');
+                            gameState = roomData.gameState;
                             startGameplay();
+                            return;
+                        }
+                    }
+                    
+                    // Handle waiting screen
+                    if (currentScreen === 'waiting-screen') {
+                        // Check if game has started
+                        if (roomData.gameState?.inProgress) {
+                            console.log('Game started, moving from waiting to gameplay');
+                            gameState = roomData.gameState;
+                            startGameplay();
+                            return;
                         }
                         
-                        // Update gameplay UI if in game
-                        if (currentScreen === 'gameplay-screen') {
-                            updateGameplayUI();
-                            updateGameLog();
+                        // Update waiting message based on ready states
+                        const hostReady = roomData.players?.host?.playerReady || false;
+                        const guestReady = roomData.players?.guest?.playerReady || false;
+                        const myRole = currentUser.uid === roomData.players.host.uid ? 'host' : 'guest';
+                        const amReady = (myRole === 'host') ? hostReady : guestReady;
+                        const opponentReady = (myRole === 'host') ? guestReady : hostReady;
+                        
+                        const waitingMessage = document.querySelector('.waiting-message h2');
+                        if (amReady && opponentReady) {
+                            waitingMessage.textContent = '🎮 Both ready! Waiting for host to start...';
+                        } else if (amReady) {
+                            waitingMessage.textContent = '⏳ Waiting for opponent to select...';
+                        } else {
+                            waitingMessage.textContent = '⏳ Please select your player first...';
                         }
+                    }
+                    
+                    // Handle gameplay updates
+                    if (roomData.gameState && currentScreen === 'gameplay-screen') {
+                        gameState = roomData.gameState;
+                        updateGameplayUI();
+                        updateGameLog();
                         
                         // Check for game winner
                         if (roomData.gameState.winner && currentScreen !== 'victory-screen') {
@@ -1333,6 +1357,28 @@
             showScreen('game-room-screen');
             document.getElementById('room-code-text').textContent = currentRoom.roomCode;
             document.getElementById('host-name').textContent = currentRoom.players.host.username;
+            
+            // Show "Select Players" button immediately for demonstration
+            const startGameBtn = document.getElementById('start-game-btn');
+            if (isHost) {
+                startGameBtn.style.display = 'block';
+                startGameBtn.textContent = '🎮 Select Players First';
+                startGameBtn.onclick = () => {
+                    // Initialize game state for player selection
+                    updateDoc(doc(db, 'rooms', currentRoom.id), {
+                        gameState: {
+                            inProgress: false,
+                            phase: 'player_selection',
+                            currentTurn: 'host'
+                        }
+                    }).then(() => {
+                        startPlayerSelection();
+                    }).catch(error => {
+                        console.error('Error initializing game state:', error);
+                        startPlayerSelection(); // Fallback
+                    });
+                };
+            }
         }
 
         function updateGameRoomUI(roomData) {
@@ -1353,8 +1399,20 @@
                     <div class="player-role">🎮 Player</div>
                 `;
                 
-                if (roomData.players.host.uid === currentUser.uid) {
+                // Check if both players are ready
+                const hostReady = roomData.players?.host?.playerReady || false;
+                const guestReady = roomData.players?.guest?.playerReady || false;
+                const isHost = roomData.players.host.uid === currentUser.uid;
+                
+                if (hostReady && guestReady && isHost) {
                     startGameBtn.style.display = 'block';
+                    startGameBtn.textContent = '🚀 Both Ready - Start Game!';
+                } else if (isHost) {
+                    startGameBtn.style.display = 'block';
+                    startGameBtn.textContent = '⏳ Select Players First';
+                    startGameBtn.disabled = true;
+                } else {
+                    startGameBtn.style.display = 'none';
                 }
             } else {
                 playerCountElement.classList.remove('full');
@@ -1364,22 +1422,35 @@
             }
         }
 
-        // Start game functionality
+        // Start game functionality - Fixed to check player readiness
         document.getElementById('start-game-btn').addEventListener('click', async () => {
             console.log('Host starting game...');
             try {
-                await updateDoc(doc(db, 'rooms', currentRoom.id), {
-                    status: 'playing',
-                    gameState: {
-                        phase: 'player_selection',
-                        selections: {},
-                        turn: 'host',
-                        questions: [],
-                        gameLog: [],
-                        winner: null
-                    }
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                
+                // First check if both players are ready
+                const roomDoc = await getDoc(roomRef);
+                const roomData = roomDoc.data();
+                
+                const hostReady = roomData.players?.host?.playerReady || false;
+                const guestReady = roomData.players?.guest?.playerReady || false;
+                
+                if (!hostReady || !guestReady) {
+                    showError('Both players must select their footballer first!');
+                    return;
+                }
+                
+                // Both players are ready, start the game
+                await updateDoc(roomRef, {
+                    'gameState.inProgress': true,
+                    'gameState.phase': 'gameplay',
+                    'gameState.currentTurn': 'host', // Host goes first
+                    'gameState.questions': [],
+                    'gameState.gameLog': [],
+                    'gameState.winner': null
                 });
-                console.log('Game state updated to playing');
+                
+                console.log('Game started successfully');
             } catch (error) {
                 console.error('Error starting game:', error);
                 showError('Failed to start game');
@@ -1410,13 +1481,30 @@
                 playerCard.className = 'player-card';
                 playerCard.dataset.playerId = player.id;
                 
-                // Create initials fallback
-                const initials = player.name.split(' ').map(n => n[0]).join('');
+                // Create image element with proper error handling
+                const imageContainer = document.createElement('div');
+                imageContainer.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin-bottom: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;';
                 
-                playerCard.innerHTML = `
-                    <div class="player-image" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;">${initials}</div>
-                    <div class="player-card-name">${player.name}</div>
-                `;
+                const img = document.createElement('img');
+                img.src = `./assets/players/${player.id}.png`; // Try local path first
+                img.alt = player.name;
+                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                
+                // Fallback with initials if image fails
+                img.onerror = function() {
+                    const initials = player.name.split(' ').map(n => n[0]).join('');
+                    imageContainer.innerHTML = `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">${initials}</div>`;
+                };
+                
+                imageContainer.appendChild(img);
+                
+                playerCard.innerHTML = '';
+                playerCard.appendChild(imageContainer);
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'player-card-name';
+                nameDiv.textContent = player.name;
+                playerCard.appendChild(nameDiv);
                 
                 playerCard.addEventListener('click', () => selectPlayer(player.id, playerCard));
                 playersGrid.appendChild(playerCard);
@@ -1517,12 +1605,30 @@
                     playerCard.classList.add('eliminated');
                 }
                 
-                const initials = player.name.split(' ').map(n => n[0]).join('');
+                // Create image element with proper error handling
+                const imageContainer = document.createElement('div');
+                imageContainer.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin-bottom: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;';
                 
-                playerCard.innerHTML = `
-                    <div class="player-image" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;">${initials}</div>
-                    <div class="player-card-name">${player.name}</div>
-                `;
+                const img = document.createElement('img');
+                img.src = `./assets/players/${player.id}.png`;
+                img.alt = player.name;
+                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                
+                // Fallback with initials if image fails
+                img.onerror = function() {
+                    const initials = player.name.split(' ').map(n => n[0]).join('');
+                    imageContainer.innerHTML = `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">${initials}</div>`;
+                };
+                
+                imageContainer.appendChild(img);
+                
+                playerCard.innerHTML = '';
+                playerCard.appendChild(imageContainer);
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'player-card-name';
+                nameDiv.textContent = player.name;
+                playerCard.appendChild(nameDiv);
                 
                 playerCard.addEventListener('click', () => togglePlayerElimination(player.id, playerCard));
                 modalPlayersGrid.appendChild(playerCard);
@@ -1550,7 +1656,7 @@
 
         function updateGameplayUI() {
             const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
-            const isMyTurn = gameState.turn === myRole;
+            const isMyTurn = gameState.currentTurn === myRole;
             const turnIndicator = document.getElementById('turn-indicator');
             const questionMode = document.getElementById('question-mode');
             const answerMode = document.getElementById('answer-mode');
@@ -1634,13 +1740,16 @@
         async function answerQuestion(answer) {
             try {
                 const roomRef = doc(db, 'rooms', currentRoom.id);
+                const roomDoc = await getDoc(roomRef);
+                const roomData = roomDoc.data();
+                
                 const questionIndex = gameState.questions.length - 1;
                 const updatedQuestions = [...gameState.questions];
                 const currentQuestion = updatedQuestions[questionIndex];
                 
                 // Get the target player (the one being guessed)
-                const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
-                const mySelectedPlayer = gameState.selections[myRole];
+                const myRole = currentUser.uid === roomData.players.host.uid ? 'host' : 'guest';
+                const mySelectedPlayer = roomData.players[myRole].selectedPlayer;
                 
                 // Get the correct answer from player profile
                 const correctAnswer = getPlayerAnswer(mySelectedPlayer, currentQuestion.id);
@@ -1659,7 +1768,7 @@
                 
                 await updateDoc(roomRef, {
                     'gameState.questions': updatedQuestions,
-                    'gameState.turn': opponentRole,
+                    'gameState.currentTurn': opponentRole,
                     'gameState.gameLog': newGameLog
                 });
                 
@@ -1688,12 +1797,30 @@
                     guessCard.classList.add('eliminated');
                 }
                 
-                const initials = player.name.split(' ').map(n => n[0]).join('');
+                // Create image element with proper error handling
+                const imageContainer = document.createElement('div');
+                imageContainer.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin-bottom: 5px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;';
                 
-                guessCard.innerHTML = `
-                    <div class="player-image" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; margin-bottom: 5px;">${initials}</div>
-                    <div class="guess-card-name">${player.name}</div>
-                `;
+                const img = document.createElement('img');
+                img.src = `./assets/players/${player.id}.png`;
+                img.alt = player.name;
+                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                
+                // Fallback with initials if image fails
+                img.onerror = function() {
+                    const initials = player.name.split(' ').map(n => n[0]).join('');
+                    imageContainer.innerHTML = `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px;">${initials}</div>`;
+                };
+                
+                imageContainer.appendChild(img);
+                
+                guessCard.innerHTML = '';
+                guessCard.appendChild(imageContainer);
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'guess-card-name';
+                nameDiv.textContent = player.name;
+                guessCard.appendChild(nameDiv);
                 
                 if (!eliminatedPlayers.has(player.id)) {
                     guessCard.addEventListener('click', () => selectGuessPlayer(player.id, guessCard));
@@ -1716,14 +1843,17 @@
             if (!selectedGuessPlayer) return;
             
             try {
-                const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                const roomDoc = await getDoc(roomRef);
+                const roomData = roomDoc.data();
+                
+                const myRole = currentUser.uid === roomData.players.host.uid ? 'host' : 'guest';
                 const opponentRole = myRole === 'host' ? 'guest' : 'host';
-                const opponentSelectedPlayer = gameState.selections[opponentRole];
+                const opponentSelectedPlayer = roomData.players[opponentRole].selectedPlayer;
                 
                 const isCorrect = selectedGuessPlayer === opponentSelectedPlayer;
                 const winner = isCorrect ? myRole : opponentRole;
                 
-                const roomRef = doc(db, 'rooms', currentRoom.id);
                 await updateDoc(roomRef, {
                     'gameState.winner': winner,
                     'gameState.finalGuess': {
@@ -1788,15 +1918,16 @@
                 
                 const roomRef = doc(db, 'rooms', currentRoom.id);
                 await updateDoc(roomRef, {
-                    status: 'playing',
-                    gameState: {
-                        phase: 'player_selection',
-                        selections: {},
-                        turn: 'host',
-                        questions: [],
-                        gameLog: [],
-                        winner: null
-                    }
+                    'gameState.inProgress': false,
+                    'gameState.phase': 'player_selection',
+                    'gameState.currentTurn': 'host',
+                    'gameState.questions': [],
+                    'gameState.gameLog': [],
+                    'gameState.winner': null,
+                    'players.host.playerReady': false,
+                    'players.guest.playerReady': false,
+                    'players.host.selectedPlayer': null,
+                    'players.guest.selectedPlayer': null
                 });
                 
                 startPlayerSelection();
