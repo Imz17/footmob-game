@@ -291,6 +291,152 @@
             font-weight: bold;
         }
 
+        /* Game Screens Styles */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .player-card {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .player-card:hover {
+            transform: scale(1.05);
+            background: rgba(255,255,255,1);
+        }
+
+        .player-card.selected {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .player-card img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 8px;
+            background: #ddd;
+        }
+
+        .player-card-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            line-height: 1.2;
+        }
+
+        .game-status {
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .turn-indicator {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .questions-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .question-item {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .question-item:hover {
+            background: rgba(255,255,255,1);
+            transform: translateY(-2px);
+        }
+
+        .question-item.used {
+            background: rgba(150,150,150,0.5);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .question-item.selected {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .answer-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .answer-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .answer-btn.yes {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+
+        .answer-btn.no {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            color: white;
+        }
+
+        .game-log {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .waiting-message {
+            text-align: center;
+            padding: 40px;
+            font-size: 16px;
+            color: #FFD700;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 10px;
@@ -303,6 +449,10 @@
             .button {
                 font-size: 16px;
                 padding: 15px 25px;
+            }
+
+            .player-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -386,6 +536,60 @@
             <div class="player-count" id="player-count">👤 Players: 1 / 2</div>
         </div>
 
+        <!-- Player Selection Screen -->
+        <div id="player-selection-screen" class="screen">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #FFD700;">Choose Your Player</h2>
+            <p style="text-align: center; color: #E0E0E0; margin-bottom: 20px;">Select the player your opponent will try to guess</p>
+            
+            <div id="players-grid" class="player-grid">
+                <!-- Players will be populated here -->
+            </div>
+            
+            <button id="confirm-player-btn" class="button success" style="display: none;">Confirm Selection</button>
+        </div>
+
+        <!-- Waiting for Opponent Screen -->
+        <div id="waiting-screen" class="screen">
+            <div class="waiting-message">
+                <h2 style="color: #FFD700; margin-bottom: 20px;">⏳ Waiting for opponent...</h2>
+                <p>Both players need to select their player before the game can begin.</p>
+            </div>
+        </div>
+
+        <!-- Game Play Screen -->
+        <div id="gameplay-screen" class="screen">
+            <div class="game-status">
+                <div class="turn-indicator" id="turn-indicator">Your turn to ask a question</div>
+            </div>
+
+            <div id="question-mode" style="display: none;">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Select a Question:</h3>
+                <div class="questions-container" id="questions-container">
+                    <!-- Questions will be populated here -->
+                </div>
+                <button id="ask-question-btn" class="button" style="display: none;">Ask Question</button>
+            </div>
+
+            <div id="answer-mode" style="display: none;">
+                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 style="color: #FFD700; margin-bottom: 10px;">Question:</h3>
+                    <p id="current-question" style="font-size: 16px; margin-bottom: 15px;"></p>
+                    <div class="answer-buttons">
+                        <button id="answer-yes-btn" class="answer-btn yes">YES</button>
+                        <button id="answer-no-btn" class="answer-btn no">NO</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-log" id="game-log">
+                <h4 style="color: #FFD700; margin-bottom: 10px;">Game Log:</h4>
+                <div id="log-entries"></div>
+            </div>
+
+            <button id="make-guess-btn" class="button secondary">🎯 Make Final Guess</button>
+            <button id="quit-game-btn" class="button" style="background: #666; margin-top: 10px;">← Quit Game</button>
+        </div>
+
         <!-- Create Room Modal -->
         <div id="create-room-modal" class="modal">
             <div class="modal-content">
@@ -419,12 +623,12 @@
 
     <!-- Firebase Configuration -->
     <script type="module">
-        // Firebase configuration - Replace with your actual Firebase config
+        // Firebase configuration
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Your actual Firebase configuration
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCFJvXq_bQwiFPg2cAeWpT1p1WKobjUfS8",
             authDomain: "footmob-a9aa8.firebaseapp.com",
@@ -439,11 +643,176 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // Game Data
+        const players = [
+            { id: "leroy_sane", name: "Leroy Sané", image: "leroy_sane.png" },
+            { id: "kingsley_coman", name: "Kingsley Coman", image: "kingsley_coman.png" },
+            { id: "joao_felix", name: "João Félix", image: "joao_felix.png" },
+            { id: "phil_foden", name: "Phil Foden", image: "phil_foden.png" },
+            { id: "bukayo_saka", name: "Bukayo Saka", image: "bukayo_saka.png" },
+            { id: "jamal_musiala", name: "Jamal Musiala", image: "jamal_musiala.png" },
+            { id: "jude_bellingham", name: "Jude Bellingham", image: "jude_bellingham.png" },
+            { id: "rafael_leao", name: "Rafael Leão", image: "rafael_leao.png" },
+            { id: "vinicius_junior", name: "Vinícius Júnior", image: "vinicius_junior.png" },
+            { id: "rodrygo", name: "Rodrygo", image: "rodrygo.png" },
+            { id: "antony", name: "Antony", image: "antony.png" },
+            { id: "gabriel_martinelli", name: "Gabriel Martinelli", image: "gabriel_martinelli.png" },
+            { id: "ansu_fati", name: "Ansu Fati", image: "ansu_fati.png" },
+            { id: "gavi", name: "Gavi", image: "gavi.png" },
+            { id: "pedri", name: "Pedri", image: "pedri.png" },
+            { id: "eduardo_camavinga", name: "Eduardo Camavinga", image: "eduardo_camavinga.png" },
+            { id: "aurelien_tchouameni", name: "Aurélien Tchouaméni", image: "aurelien_tchouameni.png" },
+            { id: "manuel_ugarte", name: "Manuel Ugarte", image: "manuel_ugarte.png" },
+            { id: "khvicha_kvaratskhelia", name: "Khvicha Kvaratskhelia", image: "khvicha_kvaratskhelia.png" },
+            { id: "nico_williams", name: "Nico Williams", image: "nico_williams.png" },
+            { id: "alejandro_garnacho", name: "Alejandro Garnacho", image: "alejandro_garnacho.png" },
+            { id: "rasmus_hojlund", name: "Rasmus Højlund", image: "rasmus_hojlund.png" },
+            { id: "dominik_szoboszlai", name: "Dominik Szoboszlai", image: "dominik_szoboszlai.png" },
+            { id: "xavi_simons", name: "Xavi Simons", image: "xavi_simons.png" }
+        ];
+
+        const questions = [
+            {
+                id: 1,
+                question: "Has he scored 20+ goals in a season?",
+                answers: {
+                    "leroy_sane": true, "kingsley_coman": false, "joao_felix": true, "phil_foden": true,
+                    "bukayo_saka": true, "jamal_musiala": false, "jude_bellingham": true, "rafael_leao": true,
+                    "vinicius_junior": true, "rodrygo": false, "antony": false, "gabriel_martinelli": false,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": false, "khvicha_kvaratskhelia": true,
+                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": false
+                }
+            },
+            {
+                id: 2,
+                question: "Is he currently playing in the Premier League?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": true,
+                    "bukayo_saka": true, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
+                    "vinicius_junior": false, "rodrygo": false, "antony": true, "gabriel_martinelli": true,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
+                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": true,
+                    "dominik_szoboszlai": true, "xavi_simons": false
+                }
+            },
+            {
+                id: 3,
+                question: "Is he under 23 years old?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
+                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
+                    "vinicius_junior": false, "rodrygo": true, "antony": false, "gabriel_martinelli": true,
+                    "ansu_fati": true, "gavi": true, "pedri": true, "eduardo_camavinga": true,
+                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
+                    "nico_williams": true, "alejandro_garnacho": true, "rasmus_hojlund": true,
+                    "dominik_szoboszlai": true, "xavi_simons": true
+                }
+            },
+            {
+                id: 4,
+                question: "Has he won the Champions League?",
+                answers: {
+                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": false, "phil_foden": true,
+                    "bukayo_saka": false, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
+                    "vinicius_junior": true, "rodrygo": true, "antony": false, "gabriel_martinelli": false,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": true,
+                    "aurelien_tchouameni": true, "manuel_ugarte": false, "khvicha_kvaratskhelia": false,
+                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": false
+                }
+            },
+            {
+                id: 5,
+                question: "Is he from South America?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
+                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
+                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": true,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
+                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": false
+                }
+            },
+            {
+                id: 6,
+                question: "Does he play as a winger?",
+                answers: {
+                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": false, "phil_foden": true,
+                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": false, "rafael_leao": true,
+                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": true,
+                    "ansu_fati": true, "gavi": false, "pedri": false, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": false, "khvicha_kvaratskhelia": true,
+                    "nico_williams": true, "alejandro_garnacho": true, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": true
+                }
+            },
+            {
+                id: 7,
+                question: "Is he white?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": true, "phil_foden": true,
+                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
+                    "vinicius_junior": false, "rodrygo": false, "antony": false, "gabriel_martinelli": false,
+                    "ansu_fati": false, "gavi": true, "pedri": true, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
+                    "nico_williams": false, "alejandro_garnacho": true, "rasmus_hojlund": true,
+                    "dominik_szoboszlai": true, "xavi_simons": true
+                }
+            },
+            {
+                id: 8,
+                question: "Has he played in a World Cup?",
+                answers: {
+                    "leroy_sane": true, "kingsley_coman": true, "joao_felix": true, "phil_foden": true,
+                    "bukayo_saka": true, "jamal_musiala": true, "jude_bellingham": true, "rafael_leao": false,
+                    "vinicius_junior": true, "rodrygo": true, "antony": true, "gabriel_martinelli": false,
+                    "ansu_fati": true, "gavi": true, "pedri": true, "eduardo_camavinga": true,
+                    "aurelien_tchouameni": true, "manuel_ugarte": true, "khvicha_kvaratskhelia": false,
+                    "nico_williams": true, "alejandro_garnacho": false, "rasmus_hojlund": true,
+                    "dominik_szoboszlai": true, "xavi_simons": false
+                }
+            },
+            {
+                id: 9,
+                question: "Does he play for Real Madrid?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": false, "phil_foden": false,
+                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": true, "rafael_leao": false,
+                    "vinicius_junior": true, "rodrygo": true, "antony": false, "gabriel_martinelli": false,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": true,
+                    "aurelien_tchouameni": true, "manuel_ugarte": false, "khvicha_kvaratskhelia": false,
+                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": false
+                }
+            },
+            {
+                id: 10,
+                question: "Is his shirt number greater than 20?",
+                answers: {
+                    "leroy_sane": false, "kingsley_coman": false, "joao_felix": true, "phil_foden": false,
+                    "bukayo_saka": false, "jamal_musiala": false, "jude_bellingham": false, "rafael_leao": false,
+                    "vinicius_junior": false, "rodrygo": false, "antony": true, "gabriel_martinelli": false,
+                    "ansu_fati": false, "gavi": false, "pedri": false, "eduardo_camavinga": false,
+                    "aurelien_tchouameni": false, "manuel_ugarte": true, "khvicha_kvaratskhelia": true,
+                    "nico_williams": false, "alejandro_garnacho": false, "rasmus_hojlund": false,
+                    "dominik_szoboszlai": false, "xavi_simons": false
+                }
+            }
+        ];
+
         // Global variables
         let currentUser = null;
         let currentUsername = localStorage.getItem('footmob-username') || '';
         let currentRoom = null;
         let roomListener = null;
+        let selectedPlayer = null;
+        let selectedQuestion = null;
+        let gameState = {};
+        let usedQuestions = [];
 
         // Utility functions
         function generateRoomCode() {
@@ -525,7 +894,6 @@
             document.getElementById('room-list').style.display = 'none';
             
             try {
-                // Simplified query while index builds
                 const roomsQuery = query(
                     collection(db, 'rooms'),
                     where('type', '==', 'private'),
@@ -608,6 +976,10 @@
                 
                 closeCreateRoomModal();
                 enterGameRoom(true);
+                
+                // Start listening for game state changes immediately for hosts too
+                startUniversalGameListener();
+                
             } catch (error) {
                 console.error('Error creating room:', error);
                 showError('Failed to create room');
@@ -651,7 +1023,6 @@
                     return;
                 }
                 
-                // Add player as guest
                 await updateDoc(roomRef, {
                     [`players.guest`]: {
                         uid: currentUser.uid,
@@ -663,11 +1034,70 @@
                 
                 closeJoinRoomModal();
                 enterGameRoom(false);
+                
+                // Start listening for game state changes immediately for guests
+                startUniversalGameListener();
+                
             } catch (error) {
                 console.error('Error joining room:', error);
                 showError('Failed to join room');
             }
         });
+
+        // Universal game state listener - works for both host and guest
+        let universalListener = null;
+        
+        function startUniversalGameListener() {
+            console.log('Starting universal game listener for user:', currentUser.uid);
+            
+            if (universalListener) {
+                universalListener();
+            }
+            
+            const roomRef = doc(db, 'rooms', currentRoom.id);
+            universalListener = onSnapshot(roomRef, (doc) => {
+                if (doc.exists()) {
+                    const roomData = doc.data();
+                    const currentScreen = document.querySelector('.screen.active').id;
+                    
+                    console.log('Universal listener - Room status:', roomData.status, 'Current screen:', currentScreen);
+                    
+                    // Handle lobby updates
+                    if (currentScreen === 'game-room-screen') {
+                        updateGameRoomUI(roomData);
+                        
+                        // Check if game should start
+                        if (roomData.status === 'playing') {
+                            console.log('GAME STARTING! Transitioning to player selection...');
+                            universalListener(); // Stop this listener
+                            universalListener = null;
+                            startPlayerSelection();
+                            return;
+                        }
+                    }
+                    
+                    // Handle game state updates
+                    if (roomData.gameState && (currentScreen === 'player-selection-screen' || currentScreen === 'waiting-screen' || currentScreen === 'gameplay-screen')) {
+                        gameState = roomData.gameState;
+                        
+                        // Check player selection completion
+                        if (roomData.gameState.phase === 'player_selection') {
+                            const selections = roomData.gameState.selections || {};
+                            if (selections.host && selections.guest && currentScreen === 'waiting-screen') {
+                                console.log('Both players selected, starting gameplay');
+                                startGameplay();
+                            }
+                        }
+                        
+                        // Update gameplay UI if in game
+                        if (currentScreen === 'gameplay-screen') {
+                            updateGameplayUI();
+                            updateGameLog();
+                        }
+                    }
+                }
+            });
+        }
 
         // Game room functionality
         function enterGameRoom(isHost) {
@@ -675,21 +1105,7 @@
             document.getElementById('room-code-text').textContent = currentRoom.roomCode;
             document.getElementById('host-name').textContent = currentRoom.players.host.username;
             
-            if (isHost) {
-                document.getElementById('start-game-btn').style.display = 'none';
-            }
-            
-            // Listen for room updates
-            if (roomListener) {
-                roomListener();
-            }
-            
-            roomListener = onSnapshot(doc(db, 'rooms', currentRoom.id), (doc) => {
-                if (doc.exists()) {
-                    const roomData = doc.data();
-                    updateGameRoomUI(roomData);
-                }
-            });
+            // The universal listener will handle all updates
         }
 
         function updateGameRoomUI(roomData) {
@@ -699,20 +1115,17 @@
             const guestContent = document.getElementById('guest-content');
             const startGameBtn = document.getElementById('start-game-btn');
             
-            // Update player count
             playerCountElement.textContent = `👤 Players: ${playerCount} / 2`;
             
             if (playerCount === 2) {
                 playerCountElement.classList.add('full');
                 
-                // Update guest slot
                 guestSlot.classList.add('filled');
                 guestContent.innerHTML = `
                     <div class="player-name">${roomData.players.guest.username}</div>
                     <div class="player-role">🎮 Player</div>
                 `;
                 
-                // Show start button for host
                 if (roomData.players.host.uid === currentUser.uid) {
                     startGameBtn.style.display = 'block';
                 }
@@ -724,13 +1137,241 @@
             }
         }
 
-        // Start game
-        document.getElementById('start-game-btn').addEventListener('click', () => {
-            alert('Game started! 🎮\n\nThis is where the actual quiz game would begin.');
+        // Start game functionality
+        document.getElementById('start-game-btn').addEventListener('click', async () => {
+            console.log('Host starting game...');
+            try {
+                await updateDoc(doc(db, 'rooms', currentRoom.id), {
+                    status: 'playing',
+                    gameState: {
+                        phase: 'player_selection',
+                        selections: {},
+                        turn: 'host',
+                        questions: [],
+                        gameLog: []
+                    }
+                });
+                console.log('Game state updated to playing');
+            } catch (error) {
+                console.error('Error starting game:', error);
+                showError('Failed to start game');
+            }
         });
 
-        // Leave room
+        // Player selection functionality
+        function startPlayerSelection() {
+            console.log('Starting player selection for user:', currentUser.uid);
+            
+            showScreen('player-selection-screen');
+            populatePlayersGrid();
+            
+            // The universal listener will handle all further updates
+        }
+
+        function populatePlayersGrid() {
+            const playersGrid = document.getElementById('players-grid');
+            playersGrid.innerHTML = '';
+            
+            players.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                playerCard.dataset.playerId = player.id;
+                
+                playerCard.innerHTML = `
+                    <img src="${player.image}" alt="${player.name}" 
+                         onerror="this.style.background='#ddd'; this.style.color='#666'; this.style.fontSize='10px'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='${player.name.split(' ').map(n => n[0]).join('')}';">
+                    <div class="player-card-name">${player.name}</div>
+                `;
+                
+                playerCard.addEventListener('click', () => selectPlayer(player.id, playerCard));
+                playersGrid.appendChild(playerCard);
+            });
+        }
+
+        function selectPlayer(playerId, cardElement) {
+            document.querySelectorAll('.player-card').forEach(card => card.classList.remove('selected'));
+            cardElement.classList.add('selected');
+            selectedPlayer = playerId;
+            document.getElementById('confirm-player-btn').style.display = 'block';
+        }
+
+        document.getElementById('confirm-player-btn').addEventListener('click', async () => {
+            if (!selectedPlayer) return;
+            
+            try {
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                const role = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+                
+                console.log('Confirming player selection:', selectedPlayer, 'for role:', role);
+                
+                await updateDoc(roomRef, {
+                    [`gameState.selections.${role}`]: selectedPlayer
+                });
+                
+                showScreen('waiting-screen');
+                
+            } catch (error) {
+                console.error('Error confirming player selection:', error);
+                showError('Failed to confirm selection');
+            }
+        });
+
+        // Gameplay functionality
+        function startGameplay() {
+            console.log('Starting gameplay phase');
+            
+            showScreen('gameplay-screen');
+            populateQuestions();
+            updateGameplayUI();
+            
+            // The universal listener will handle all game updates
+        }
+
+        function populateQuestions() {
+            const questionsContainer = document.getElementById('questions-container');
+            questionsContainer.innerHTML = '';
+            
+            questions.forEach(question => {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item';
+                questionItem.dataset.questionId = question.id;
+                questionItem.textContent = question.question;
+                
+                questionItem.addEventListener('click', () => selectQuestion(question.id, questionItem));
+                questionsContainer.appendChild(questionItem);
+            });
+        }
+
+        function selectQuestion(questionId, questionElement) {
+            if (questionElement.classList.contains('used')) return;
+            
+            document.querySelectorAll('.question-item').forEach(item => item.classList.remove('selected'));
+            questionElement.classList.add('selected');
+            selectedQuestion = questionId;
+            document.getElementById('ask-question-btn').style.display = 'block';
+        }
+
+        function updateGameplayUI() {
+            const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+            const isMyTurn = gameState.turn === myRole;
+            const turnIndicator = document.getElementById('turn-indicator');
+            const questionMode = document.getElementById('question-mode');
+            const answerMode = document.getElementById('answer-mode');
+            
+            if (isMyTurn) {
+                turnIndicator.textContent = "Your turn to ask a question";
+                questionMode.style.display = 'block';
+                answerMode.style.display = 'none';
+            } else {
+                turnIndicator.textContent = "Opponent's turn";
+                questionMode.style.display = 'none';
+                
+                // Check if there's a pending question to answer
+                const lastQuestion = gameState.questions[gameState.questions.length - 1];
+                if (lastQuestion && !lastQuestion.answer) {
+                    answerMode.style.display = 'block';
+                    document.getElementById('current-question').textContent = lastQuestion.question;
+                } else {
+                    answerMode.style.display = 'none';
+                }
+            }
+            
+            // Update used questions
+            const usedQuestionIds = gameState.questions.map(q => q.id);
+            document.querySelectorAll('.question-item').forEach(item => {
+                const questionId = parseInt(item.dataset.questionId);
+                if (usedQuestionIds.includes(questionId)) {
+                    item.classList.add('used');
+                }
+            });
+        }
+
+        function updateGameLog() {
+            const logEntries = document.getElementById('log-entries');
+            logEntries.innerHTML = '';
+            
+            gameState.gameLog?.forEach(entry => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = entry;
+                logEntries.appendChild(logEntry);
+            });
+            
+            logEntries.scrollTop = logEntries.scrollHeight;
+        }
+
+        // Question asking
+        document.getElementById('ask-question-btn').addEventListener('click', async () => {
+            if (!selectedQuestion) return;
+            
+            try {
+                const question = questions.find(q => q.id === selectedQuestion);
+                const questionData = {
+                    id: selectedQuestion,
+                    question: question.question,
+                    askedBy: currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest',
+                    answer: null
+                };
+                
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                const newQuestions = [...gameState.questions, questionData];
+                
+                await updateDoc(roomRef, {
+                    'gameState.questions': newQuestions
+                });
+                
+                selectedQuestion = null;
+                document.getElementById('ask-question-btn').style.display = 'none';
+                document.querySelectorAll('.question-item').forEach(item => item.classList.remove('selected'));
+                
+            } catch (error) {
+                console.error('Error asking question:', error);
+                showError('Failed to ask question');
+            }
+        });
+
+        // Answer buttons
+        document.getElementById('answer-yes-btn').addEventListener('click', () => answerQuestion(true));
+        document.getElementById('answer-no-btn').addEventListener('click', () => answerQuestion(false));
+
+        async function answerQuestion(answer) {
+            try {
+                const roomRef = doc(db, 'rooms', currentRoom.id);
+                const questionIndex = gameState.questions.length - 1;
+                const updatedQuestions = [...gameState.questions];
+                updatedQuestions[questionIndex].answer = answer;
+                
+                const myRole = currentUser.uid === currentRoom.players.host.uid ? 'host' : 'guest';
+                const opponentRole = myRole === 'host' ? 'guest' : 'host';
+                
+                const questionText = updatedQuestions[questionIndex].question;
+                const answerText = answer ? 'YES' : 'NO';
+                const logEntry = `${questionText} - ${answerText}`;
+                
+                const newGameLog = [...(gameState.gameLog || []), logEntry];
+                
+                await updateDoc(roomRef, {
+                    'gameState.questions': updatedQuestions,
+                    'gameState.turn': opponentRole,
+                    'gameState.gameLog': newGameLog
+                });
+                
+            } catch (error) {
+                console.error('Error answering question:', error);
+                showError('Failed to answer question');
+            }
+        }
+
+        // Leave/quit functionality
         document.getElementById('leave-room-btn').addEventListener('click', async () => {
+            await leaveRoom();
+        });
+
+        document.getElementById('quit-game-btn').addEventListener('click', async () => {
+            await leaveRoom();
+        });
+
+        async function leaveRoom() {
             if (roomListener) {
                 roomListener();
                 roomListener = null;
@@ -745,12 +1386,10 @@
                         const roomData = roomDoc.data();
                         
                         if (roomData.players.host.uid === currentUser.uid) {
-                            // Host is leaving, delete the room
                             await updateDoc(roomRef, {
                                 status: 'closed'
                             });
                         } else if (roomData.players.guest && roomData.players.guest.uid === currentUser.uid) {
-                            // Guest is leaving, remove from players
                             await updateDoc(roomRef, {
                                 'players.guest': null
                             });
@@ -762,9 +1401,12 @@
             }
             
             currentRoom = null;
+            selectedPlayer = null;
+            selectedQuestion = null;
+            gameState = {};
             showScreen('room-lobby-screen');
             loadRooms();
-        });
+        }
 
         // Modal functions
         window.closeCreateRoomModal = function() {
@@ -806,6 +1448,11 @@
         // Auto-uppercase room code input
         document.getElementById('room-code-input').addEventListener('input', (e) => {
             e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Make guess functionality (placeholder)
+        document.getElementById('make-guess-btn').addEventListener('click', () => {
+            alert('Make a guess feature coming soon! 🎯\n\nFor now, continue asking questions to narrow down your choices.');
         });
     </script>
 </body>
